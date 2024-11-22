@@ -1,6 +1,6 @@
-[English](https://github.com/siyuan-note/siyuan-harmony/blob/master/README.md)
+[中文](https://github.com/siyuan-note/siyuan-harmony/blob/master/README_zh_CN.md)
 
-## 概述
+## Overview
 
 * Please go to [SiYuan issues](https://github.com/siyuan-note/siyuan/issues) to report issues/consult discussions
 * Code contributions are welcome
