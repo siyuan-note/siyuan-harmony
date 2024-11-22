@@ -1,0 +1,55 @@
+{
+  "app": {
+    "signingConfigs": [
+      {
+        "name": "default",
+        "type": "HarmonyOS",
+        "material": {
+          "storePassword": "0000001A666C01422E5938069497053E25831A37609581F91602C1D341CA7B1E1CA65AC97DD8CCA4D217",
+          "certpath": "D:/微云同步助手/845765/Keystore/云调试.cer",
+          "keyAlias": "key0",
+          "keyPassword": "0000001AAD802B9740346F0EF68061FA3852379DE64927316E9C581E6306CA6D173D3CB3C2909F7C7072",
+          "profile": "D:/微云同步助手/845765/Keystore/云调试Release.p7b",
+          "signAlg": "SHA256withECDSA",
+          "storeFile": "D:/微云同步助手/845765/Keystore/siyuan-harmony.p12"
+        }
+      }
+    ],
+    "products": [
+      {
+        "name": "default",
+        "signingConfig": "default",
+        "compatibleSdkVersion": "5.0.0(12)",
+        "runtimeOS": "HarmonyOS",
+        "buildOption": {
+          "strictMode": {
+            "caseSensitiveCheck": true,
+            "useNormalizedOHMUrl": true
+          }
+        }
+      }
+    ],
+    "buildModeSet": [
+      {
+        "name": "debug",
+      },
+      {
+        "name": "release"
+      }
+    ]
+  },
+  "modules": [
+    {
+      "name": "entry",
+      "srcPath": "./entry",
+      "targets": [
+        {
+          "name": "default",
+          "applyToProducts": [
+            "default"
+          ]
+        }
+      ]
+    }
+  ]
+}
