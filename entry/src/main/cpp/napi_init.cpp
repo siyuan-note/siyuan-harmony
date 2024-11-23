@@ -30,10 +30,23 @@ static napi_value StartKernel0(napi_env env, napi_callback_info info) {
     return result;
 }
 
+static napi_value IsHttpServing0(napi_env env, napi_callback_info info) {
+    napi_value result;
+
+    std::thread t([&env, &result]() { 
+        GoUint8 ret = IsHttpServing();
+        napi_create_uint32(env, ret, &result);
+    });
+    t.join();
+
+    return result;
+}
+
 EXTERN_C_START
 static napi_value Init(napi_env env, napi_value exports) {
     napi_property_descriptor desc[] = {
         {"startKernel", nullptr, StartKernel0, nullptr, nullptr, nullptr, napi_default, nullptr},
+        {"isHttpServing", nullptr, IsHttpServing0, nullptr, nullptr, nullptr, napi_default, nullptr},
     };
     napi_define_properties(env, exports, sizeof(desc) / sizeof(desc[0]), desc);
     return exports;

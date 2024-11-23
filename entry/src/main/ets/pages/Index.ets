@@ -1,26 +1,36 @@
 import { hilog } from '@kit.PerformanceAnalysisKit';
 import { webview } from '@kit.ArkWeb';
+import bundleManager from '@ohos.bundle.bundleManager';
 import napi from 'libentry.so';
 
 @Entry
 @Component
 struct Index {
-  @State message: string = 'Hello World';
   controller: webview.WebviewController = new webview.WebviewController();
 
   build() {
     Row() {
       Column() {
         Web({ src: '', controller: this.controller })
+          .javaScriptAccess(true)
+          .domStorageAccess(true)
+          .cacheMode(CacheMode.Online)
+          .textZoomRatio(100)
           .onControllerAttached(() => {
-            let context = getContext();
-            let filesDir = context.filesDir;
-            let appDir = context.resourceDir;
-            let workspaceBaseDir = filesDir + "/workspaces"
+            const info =
+              bundleManager.getBundleInfoForSelfSync(bundleManager.BundleFlag.GET_BUNDLE_INFO_WITH_APPLICATION);
 
-            hilog.info(0x0000, "boot", "appDir [" + appDir + "], workspaceBaseDir [" + workspaceBaseDir + "]");
+            const context = getContext();
+            const filesDir = context.filesDir;
+            const appDir = context.resourceDir;
+            const workspaceBaseDir = filesDir + "/workspaces"
+
+            const ua =
+              "SiYuan/" + info.versionName + " https://b3log.org/siyuan Harmony " + this.controller.getUserAgent();
+            this.controller.setCustomUserAgent(ua);
+            hilog.info(0x0000, "boot", "appDir [" + appDir + "], workspaceBaseDir [" + workspaceBaseDir + "], ua [" + ua + "]");
             napi.startKernel(appDir, workspaceBaseDir);
-
+            this.waitFotKernelHttpServing();
             this.controller.loadUrl("http://127.0.0.1:6806/appearance/boot/index.html")
           })
       }
@@ -28,4 +38,20 @@ struct Index {
     }
     .height('100%')
   }
+
+  async waitFotKernelHttpServing() {
+    while (true) {
+      await this.sleep(10);
+      const ok = napi.isHttpServing()
+      hilog.debug(0x0000, "boot", "http serving [" + ok + "]");
+      if (ok) {
+        break;
+      }
+    }
+  }
+
+  async sleep(mills :number) {
+    await new Promise<void>(resolve => setTimeout(resolve, mills))
+  }
+
 }
