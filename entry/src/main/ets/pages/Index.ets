@@ -1,6 +1,7 @@
 import { hilog } from '@kit.PerformanceAnalysisKit';
 import { webview } from '@kit.ArkWeb';
 import bundleManager from '@ohos.bundle.bundleManager';
+import { fileIo as fs } from '@kit.CoreFileKit';
 import napi from 'libentry.so';
 
 @Entry
@@ -28,7 +29,8 @@ struct Index {
             const ua =
               "SiYuan/" + info.versionName + " https://b3log.org/siyuan Harmony " + this.controller.getUserAgent();
             this.controller.setCustomUserAgent(ua);
-            hilog.info(0x0000, "boot", "appDir [" + appDir + "], workspaceBaseDir [" + workspaceBaseDir + "], ua [" + ua + "]");
+            const isFirstRun = this.isFirstRun();
+            hilog.info(0x0000, "boot", "appDir [" + appDir + "], workspaceBaseDir [" + workspaceBaseDir + "], ua [" + ua + "], first run [" + isFirstRun + "]");
             napi.startKernel(appDir, workspaceBaseDir);
             this.waitFotKernelHttpServing();
             this.controller.loadUrl("http://127.0.0.1:6806/appearance/boot/index.html")
@@ -37,6 +39,12 @@ struct Index {
       .width('100%')
     }
     .height('100%')
+  }
+
+  isFirstRun() {
+    const context = getContext();
+    const workspaceBaseDir = context.filesDir + "/workspaces"
+    return !fs.accessSync(workspaceBaseDir);
   }
 
   async waitFotKernelHttpServing() {
