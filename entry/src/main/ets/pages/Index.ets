@@ -42,15 +42,16 @@ struct Index {
             hilog.info(0x0000, "siyuan",
               "appDir [" + appDir + "], workspaceBaseDir [" + workspaceBaseDir + "], ua [" + ua + "], first run [" +
                 isFirstRun + "]");
+            napi.disableFeature("ai");
             napi.startKernel(appDir, workspaceBaseDir);
             this.waitFotKernelHttpServing();
             this.controller.loadUrl("http://127.0.0.1:6806/appearance/boot/index.html");
             this.controller.registerJavaScriptProxy(this.jsHarmony, "JSHarmony", ["openExternal"]);
           })
       }
-      .width('100%')
+      .width("100%")
     }
-    .height('100%')
+    .height("100%")
   }
 
   isFirstRun() {

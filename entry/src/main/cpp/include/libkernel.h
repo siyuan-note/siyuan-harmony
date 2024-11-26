@@ -84,7 +84,7 @@ extern GoString GetCurrentWorkspacePath();
 extern GoString GetAssetAbsPath(GoString asset);
 extern GoString GetMimeTypeByExt(GoString ext);
 extern void SetTimezone(GoString container, GoString appDir, GoString timezoneID);
-extern void DisableFeature(GoString feature);
+extern void DisableFeature(char* feature);
 
 #ifdef __cplusplus
 }
