@@ -17,11 +17,10 @@ static napi_value StartKernel0(napi_env env, napi_callback_info info) {
     size_t argc = 2;
     napi_value args[2] = {nullptr};
     napi_get_cb_info(env, info, &argc, args, nullptr, nullptr);
+    char *appDir = (value2String(env, args[0]));
+    char *workspaceBaseDir = value2String(env, args[1]);
 
-    std::thread t([&env, &args]() {
-        char *appDir = value2String(env, args[0]);
-        char *workspaceBaseDir = value2String(env, args[1]);
-
+    std::thread t([appDir, workspaceBaseDir]() {
         StartKernel((char *)"harmony", appDir, workspaceBaseDir, (char *)"Asia/Shanghai", (char *)"127.0.0.1",
                     (char *)"zh_CN", (char *)"5.0");
     });
@@ -33,12 +32,13 @@ static napi_value StartKernel0(napi_env env, napi_callback_info info) {
 static napi_value IsHttpServing0(napi_env env, napi_callback_info info) {
     napi_value result;
 
-    std::thread t([&env, &result]() { 
-        GoUint8 ret = IsHttpServing();
-        napi_create_uint32(env, ret, &result);
+    GoUint8 ret;
+    std::thread t([&ret]() {
+        ret = IsHttpServing();
     });
     t.join();
-
+    
+    napi_create_uint32(env, ret, &result);
     return result;
 }
 
@@ -46,11 +46,9 @@ static napi_value DisableFeature0(napi_env env, napi_callback_info info) {
     size_t argc = 2;
     napi_value args[2] = {nullptr};
     napi_get_cb_info(env, info, &argc, args, nullptr, nullptr);
-    
-    std::thread t([&env, &args]() { 
-        char *feature = value2String(env, args[0]);
-        DisableFeature(feature);
-    });
+    char *feature = value2String(env, args[0]);
+
+    std::thread t([feature]() { DisableFeature(feature); });
     t.join();
 
     return NULL;
