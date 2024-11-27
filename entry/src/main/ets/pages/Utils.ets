@@ -16,41 +16,23 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { common, Want } from '@kit.AbilityKit';
-import { hilog } from '@kit.PerformanceAnalysisKit';
+import { fileIo as fs } from '@kit.CoreFileKit';
+import { UIAbility } from '@kit.AbilityKit';
 
 /**
- * JavaScript 接口。
+ * 工具类。
  *
  * @author <a href="https://88250.b3log.org">Liang Ding</a>
  * @version 1.0.0.0, Nov 27, 2024
  * @since 3.1.14
  */
-export class JSHarmony {
-  openExternal(url: string) {
-    if (!url) {
-      return;
-    }
+@Component
+export struct Utils {
+  static isFirstRun(ability : UIAbility): boolean {
+    const workspaceBaseDir = ability.context.filesDir + "/workspaces"
+    return !fs.accessSync(workspaceBaseDir);
+  }
 
-    if (url.startsWith("#")) {
-      return;
-    }
-
-    if (url.startsWith("assets/")) {
-      url = "http://127.0.0.1:6806/" + url;
-    }
-
-    if (url.startsWith("/")) {
-      url = "http://127.0.0.1:6806" + url;
-    }
-
-    hilog.debug(0x0000, "siyuan", "open external [" + url + "]");
-    const context = getContext() as common.UIAbilityContext;
-    const wantInfo: Want = {
-      action: 'ohos.want.action.viewData',
-      entities: ['entity.system.browsable'],
-      uri: url
-    }
-    context.startAbility(wantInfo);
+  build() {
   }
 }
