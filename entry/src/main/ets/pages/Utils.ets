@@ -17,7 +17,7 @@
  */
 
 import { fileIo as fs } from '@kit.CoreFileKit';
-import { UIAbility } from '@kit.AbilityKit';
+import { common, UIAbility, Want } from '@kit.AbilityKit';
 
 /**
  * 工具类。
@@ -31,6 +31,16 @@ export struct Utils {
   static isFirstRun(ability : UIAbility): boolean {
     const workspaceBaseDir = ability.context.filesDir + "/workspaces"
     return !fs.accessSync(workspaceBaseDir);
+  }
+
+  static openWithBrowser(url: string) {
+    const context = getContext() as common.UIAbilityContext;
+    const wantInfo: Want = {
+      action: 'ohos.want.action.viewData',
+      entities: ['entity.system.browsable'],
+      uri: url
+    }
+    context.startAbility(wantInfo);
   }
 
   build() {

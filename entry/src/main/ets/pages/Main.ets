@@ -69,6 +69,19 @@ struct Main {
             this.controller.loadUrl("http://127.0.0.1:6806/appearance/boot/index.html");
             this.controller.registerJavaScriptProxy(this.jsHarmony, "JSHarmony", ["openExternal"]);
           })
+          .onLoadIntercept((event) => {
+            const url = event.data.getRequestUrl();
+            if (-1 < url.indexOf("127.0.0.1")) {
+              return false;
+            }
+
+            if (url.toLowerCase().startsWith("http")) {
+              Utils.openWithBrowser(url);
+              return true;
+            }
+
+            return true;
+          });
       }
       .width("100%")
     }
