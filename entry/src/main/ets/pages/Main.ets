@@ -51,7 +51,7 @@ struct Main {
           .onControllerAttached(() => {
             const context = getContext();
             const filesDir = context.filesDir;
-            const appDir = filesDir + "/app";
+            const appDir = filesDir;
             const workspaceBaseDir = filesDir + "/workspaces"
 
             const ua =

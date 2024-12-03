@@ -83,6 +83,12 @@ export struct Utils {
           return;
         }
 
+        hilog.debug(0x0000, "siyuan", appDir)
+        const entries = fs.listFileSync(appDir);
+        entries.forEach(item => {
+          hilog.debug(0x0000, "siyuan", item)
+        })
+
         hilog.info(0x0000, "siyuan", "Unzipped appearance [" + Utils.appVer + "]");
       })
     } catch (errData) {
