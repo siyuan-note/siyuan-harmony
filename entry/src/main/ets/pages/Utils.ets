@@ -17,18 +17,23 @@
  */
 
 import { fileIo as fs } from '@kit.CoreFileKit';
-import { common, UIAbility, Want } from '@kit.AbilityKit';
+import { bundleManager, common, UIAbility, Want } from '@kit.AbilityKit';
+import { BusinessError, zlib } from '@kit.BasicServicesKit';
+import { hilog } from '@kit.PerformanceAnalysisKit';
 
 /**
  * 工具类。
  *
  * @author <a href="https://88250.b3log.org">Liang Ding</a>
- * @version 1.0.0.0, Nov 27, 2024
+ * @version 1.0.0.1, Dec 3, 2024
  * @since 3.1.14
  */
 @Component
 export struct Utils {
-  static isFirstRun(ability : UIAbility): boolean {
+  static appVer =
+    bundleManager.getBundleInfoForSelfSync(bundleManager.BundleFlag.GET_BUNDLE_INFO_WITH_APPLICATION).versionName;
+
+  static isFirstRun(ability: UIAbility): boolean {
     const workspaceBaseDir = ability.context.filesDir + "/workspaces"
     return !fs.accessSync(workspaceBaseDir);
   }
@@ -41,6 +46,58 @@ export struct Utils {
       uri: url
     }
     context.startAbility(wantInfo);
+  }
+
+  static async initAppearance(ability: UIAbility) {
+    if (!Utils.needUnzipAssets(ability)) {
+      return;
+    }
+
+    const appDir = ability.context.filesDir + "/app/";
+    try {
+      fs.rmdirSync(appDir);
+    } catch (e) {
+    }
+    await Utils.unzipAsset(ability);
+    const f = fs.openSync(appDir + "/VERSION", fs.OpenMode.CREATE | fs.OpenMode.READ_WRITE);
+    fs.writeSync(f.fd, Utils.appVer);
+  }
+
+  static async unzipAsset(ability: UIAbility) {
+    hilog.debug(0x0000, "siyuan", "Unzipping appearance [" + Utils.appVer + "]");
+    const appZipData = ability.context.resourceManager.getRawFileContentSync("app.zip").buffer;
+    const appZip = ability.context.tempDir + "/app.zip";
+    const appZipFile = fs.openSync(appZip, fs.OpenMode.CREATE | fs.OpenMode.READ_WRITE);
+    fs.writeSync(appZipFile.fd, appZipData);
+    fs.closeSync(appZipFile);
+    let options: zlib.Options = {
+      level: zlib.CompressLevel.COMPRESS_LEVEL_DEFAULT_COMPRESSION
+    };
+
+    const appDir = ability.context.filesDir + "/app/";
+    fs.mkdirSync(appDir);
+    try {
+      zlib.decompressFile(appZip, appDir, options, (errData: BusinessError) => {
+        if (errData !== null) {
+          console.error(`errData is errCode: ${errData.code}  message:${errData.message}`);
+          return;
+        }
+
+        hilog.info(0x0000, "siyuan", "Unzipped appearance [" + Utils.appVer + "]");
+      })
+    } catch (errData) {
+      let code = (errData as BusinessError).code;
+      let message = (errData as BusinessError).message;
+      console.error(`errData is errCode:${code}  message:${message}`);
+    }
+  }
+
+  static needUnzipAssets(ability: UIAbility): boolean {
+    const verFilePath = ability.context.filesDir + "/app/VERSION";
+    if (!fs.accessSync(verFilePath)) {
+      return true
+    }
+    return fs.readTextSync(verFilePath) != Utils.appVer;
   }
 
   build() {

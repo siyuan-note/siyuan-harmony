@@ -12,12 +12,15 @@ export default class EntryAbility extends UIAbility {
     hilog.info(0x0000, "siyuan", '%{public}s', 'Ability onDestroy');
   }
 
-  onWindowStageCreate(windowStage: window.WindowStage): void {
+  async onWindowStageCreate(windowStage: window.WindowStage): Promise<void> {
     hilog.info(0x0000, "siyuan", '%{public}s', 'Ability onWindowStageCreate');
 
+    await Utils.initAppearance(this);
     if (Utils.isFirstRun(this)) {
+      hilog.info(0x0000, "siyuan", "Loading agreement");
       windowStage.loadContent("pages/Agreement");
     } else {
+      hilog.info(0x0000, "siyuan", "Loading main");
       windowStage.loadContent("pages/Main");
     }
   }

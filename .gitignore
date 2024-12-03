@@ -11,6 +11,6 @@
 **/.test
 /.appanalyzer
 
-entry/src/main/resources/resfile/app/
+entry/src/main/resources/rawfile/app.zip
 entry/libs/
 *.log

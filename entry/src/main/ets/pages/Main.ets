@@ -18,7 +18,6 @@
 
 import { hilog } from '@kit.PerformanceAnalysisKit';
 import { webview } from '@kit.ArkWeb';
-import bundleManager from '@ohos.bundle.bundleManager';
 import napi from 'libentry.so';
 import { JSHarmony } from './JSHarmony';
 import { Utils } from './Utils';
@@ -50,16 +49,13 @@ struct Main {
             // .zoomAccess(false)
           .textZoomRatio(100)
           .onControllerAttached(() => {
-            const info =
-              bundleManager.getBundleInfoForSelfSync(bundleManager.BundleFlag.GET_BUNDLE_INFO_WITH_APPLICATION);
-
             const context = getContext();
             const filesDir = context.filesDir;
-            const appDir = context.resourceDir;
+            const appDir = filesDir + "/app";
             const workspaceBaseDir = filesDir + "/workspaces"
 
             const ua =
-              "SiYuan/" + info.versionName + " https://b3log.org/siyuan Harmony " + this.controller.getUserAgent();
+              "SiYuan/" + Utils.appVer + " https://b3log.org/siyuan Harmony " + this.controller.getUserAgent();
             this.controller.setCustomUserAgent(ua);
             hilog.info(0x0000, "siyuan",
               "appDir [" + appDir + "], workspaceBaseDir [" + workspaceBaseDir + "], ua [" + ua + "]");
