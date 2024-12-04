@@ -26,7 +26,7 @@ import { Utils } from './Utils';
  * 主程序。
  *
  * @author <a href="https://88250.b3log.org">Liang Ding</a>
- * @version 1.0.0.0, Nov 27, 2024
+ * @version 1.0.0.1, Dec 4, 2024
  * @since 3.1.14
  */
 @Entry
@@ -63,7 +63,12 @@ struct Main {
             napi.startKernel(appDir, workspaceBaseDir);
             this.waitFotKernelHttpServing();
             this.controller.loadUrl("http://127.0.0.1:6806/appearance/boot/index.html");
-            this.controller.registerJavaScriptProxy(this.jsHarmony, "JSHarmony", ["openExternal"]);
+            this.controller.registerJavaScriptProxy(this.jsHarmony, "JSHarmony",
+              [
+                "openExternal",
+                "changeStatusBarColor"
+              ]
+            );
           })
           .onLoadIntercept((event) => {
             const url = event.data.getRequestUrl();

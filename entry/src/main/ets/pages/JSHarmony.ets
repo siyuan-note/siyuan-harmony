@@ -22,7 +22,7 @@ import { Utils } from './Utils';
  * JavaScript 接口。
  *
  * @author <a href="https://88250.b3log.org">Liang Ding</a>
- * @version 1.0.0.0, Nov 27, 2024
+ * @version 1.0.0.1, Dec 4, 2024
  * @since 3.1.14
  */
 export class JSHarmony {
@@ -44,5 +44,9 @@ export class JSHarmony {
     }
 
     Utils.openWithBrowser(url);
+  }
+
+  changeStatusBarColor(color:string, appearanceMode:number) {
+    // TODO
   }
 }
