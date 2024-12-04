@@ -8,12 +8,14 @@
 ## Construction guide
 
 1. Refer to [SiYuan Development Guide](https://github.com/siyuan-note/siyuan/blob/master/.github/CONTRIBUTING.md) to compile the kernel
-2. Copy the resource files to entry/src/main/resources/resfile/app/
-    * appearance
-    * guide
-    * stage
-    * changelogs
+2. Copy the resource files and package it in entry/src/main/resources/rawfile/app.zip
+   * appearance
+   * guide
+   * stage
+   * changelogs
 
 Directory structure reference:
 
 ![project-tree](project-tree.png)
+
+![app.zip](app-zip.png)

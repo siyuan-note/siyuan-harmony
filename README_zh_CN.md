@@ -8,7 +8,7 @@
 ## 搭建步骤
 
 1. 参考[思源笔记开发指南](https://github.com/siyuan-note/siyuan/blob/master/.github/CONTRIBUTING_zh_CN.md)编译内核
-2. 拷贝资源文件并复制到 entry/src/main/resources/resfile/app/
+2. 拷贝资源文件并打包 entry/src/main/resources/rawfile/app.zip
    * appearance
    * guide
    * stage
@@ -17,3 +17,5 @@
 目录结构参考：
 
 ![project-tree](project-tree.png)
+
+![app.zip](app-zip.png)
