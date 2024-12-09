@@ -17,12 +17,16 @@
  */
 
 import { Utils } from './Utils';
+import common from '@ohos.app.ability.common';
+import window from '@ohos.window';
+import hilog from '@ohos.hilog';
+import { BusinessError } from '@ohos.base';
 
 /**
  * JavaScript 接口。
  *
  * @author <a href="https://88250.b3log.org">Liang Ding</a>
- * @version 1.0.0.1, Dec 4, 2024
+ * @version 1.0.0.2, Dec 9, 2024
  * @since 3.1.14
  */
 export class JSHarmony {
@@ -46,7 +50,45 @@ export class JSHarmony {
     Utils.openWithBrowser(url);
   }
 
-  changeStatusBarColor(color:string, appearanceMode:number) {
-    // TODO
+  changeStatusBarColor(color: string, appearanceMode: number) {
+    const context = getContext() as common.UIAbilityContext;
+    window.getLastWindow(context).then((windowStyle: window.Window) => {
+      try {
+        const parsedColor = this.parseColor(color);
+        hilog.info(0x0000, "siyuan", "Change statusbar [color=" + color + ", parsedColor=" + parsedColor + ", appearanceMode=" + appearanceMode + "]");
+        windowStyle.setWindowSystemBarProperties({
+          statusBarColor: parsedColor,
+          statusBarContentColor: 0 !== appearanceMode ? "#ffffff" : "#000000",
+        }).catch((error: BusinessError) => {
+          hilog.error(0x0000, "siyuan", JSON.stringify(error))
+        })
+      } catch (e) {
+        hilog.error(0x0000, "siyuan", JSON.stringify(e))
+      }
+    });
+  }
+
+  private parseColor(color: string): string {
+    try {
+      color = color.trim();
+      if (color.toLowerCase().includes("rgb")) {
+        const splitStr = color.substring(color.indexOf('(') + 1, color.indexOf(')'));
+        const splitString = splitStr.split(",");
+        const colorValues = splitString.map(value => parseInt(value.trim(), 10));
+        return `rgb(${colorValues[0]}, ${colorValues[1]}, ${colorValues[2]})`;
+      }
+      if (color.length < 7) {
+        // Convert 3-digit hex colors to 6-digit
+        color = color.replace(/#([0-9a-fA-F])([0-9a-fA-F])([0-9a-fA-F])/, "#$1$1$2$2$3$3");
+      }
+      if (color.length === 9 && color.charAt(0) === '#') {
+        // Convert #RRGGBBAA to #AARRGGBB
+        color = "#" + color.substring(7, 9) + color.substring(1, 7);
+      }
+      return color;
+    } catch (e) {
+      hilog.error(0x0000, "siyuan", "parse color [" + color + "] failed", e);
+      return "#ffffff";
+    }
   }
 }
