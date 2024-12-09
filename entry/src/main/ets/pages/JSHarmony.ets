@@ -21,6 +21,7 @@ import common from '@ohos.app.ability.common';
 import window from '@ohos.window';
 import hilog from '@ohos.hilog';
 import { BusinessError } from '@ohos.base';
+import { pasteboard } from '@kit.BasicServicesKit';
 
 /**
  * JavaScript 接口。
@@ -30,6 +31,37 @@ import { BusinessError } from '@ohos.base';
  * @since 3.1.14
  */
 export class JSHarmony {
+  writeHTMLClipboard(text: string, html: string) {
+    let pasteData: pasteboard.PasteData = pasteboard.createData(pasteboard.MIMETYPE_TEXT_HTML, html);
+    let systemPasteboard: pasteboard.SystemPasteboard = pasteboard.getSystemPasteboard();
+    try {
+      systemPasteboard.setDataSync(pasteData);
+    } catch (err) {
+      hilog.error(0x0000, "siyuan", "Failed to set PasteData. Cause: " + err.message);
+    }
+  }
+
+  writeClipboard(text: string) {
+    let pasteData: pasteboard.PasteData = pasteboard.createData(pasteboard.MIMETYPE_TEXT_PLAIN, text);
+    let systemPasteboard: pasteboard.SystemPasteboard = pasteboard.getSystemPasteboard();
+    try {
+      systemPasteboard.setDataSync(pasteData);
+    } catch (err) {
+      hilog.error(0x0000, "siyuan", "Failed to set PasteData. Cause: " + err.message);
+    }
+  }
+
+  readClipboard(): string {
+    let systemPasteboard: pasteboard.SystemPasteboard = pasteboard.getSystemPasteboard();
+    try {
+      let result: pasteboard.PasteData = systemPasteboard.getDataSync();
+      return result.getPrimaryText();
+    } catch (err) {
+      hilog.error(0x0000, "siyuan", "Failed to get PasteData. Cause: " + err.message);
+      return ""
+    }
+  }
+
   openExternal(url: string) {
     if (!url) {
       return;
@@ -55,7 +87,9 @@ export class JSHarmony {
     window.getLastWindow(context).then((windowStyle: window.Window) => {
       try {
         const parsedColor = this.parseColor(color);
-        hilog.info(0x0000, "siyuan", "Change statusbar [color=" + color + ", parsedColor=" + parsedColor + ", appearanceMode=" + appearanceMode + "]");
+        hilog.info(0x0000, "siyuan",
+          "Change statusbar [color=" + color + ", parsedColor=" + parsedColor + ", appearanceMode=" + appearanceMode +
+            "]");
         windowStyle.setWindowSystemBarProperties({
           statusBarColor: parsedColor,
           statusBarContentColor: 0 !== appearanceMode ? "#ffffff" : "#000000",
