@@ -32,32 +32,32 @@ import { pasteboard } from '@kit.BasicServicesKit';
  */
 export class JSHarmony {
   writeHTMLClipboard(text: string, html: string) {
-    let pasteData: pasteboard.PasteData = pasteboard.createData(pasteboard.MIMETYPE_TEXT_HTML, html);
-    let systemPasteboard: pasteboard.SystemPasteboard = pasteboard.getSystemPasteboard();
     try {
+      let pasteData: pasteboard.PasteData = pasteboard.createData(pasteboard.MIMETYPE_TEXT_HTML, html);
+      let systemPasteboard: pasteboard.SystemPasteboard = pasteboard.getSystemPasteboard();
       systemPasteboard.setDataSync(pasteData);
-    } catch (err) {
-      hilog.error(0x0000, "siyuan", "Failed to set PasteData. Cause: " + err.message);
+    } catch (e) {
+      hilog.error(0x0000, "siyuan", "Failed to set PasteData. Cause: " + e.message);
     }
   }
 
   writeClipboard(text: string) {
-    let pasteData: pasteboard.PasteData = pasteboard.createData(pasteboard.MIMETYPE_TEXT_PLAIN, text);
-    let systemPasteboard: pasteboard.SystemPasteboard = pasteboard.getSystemPasteboard();
     try {
+      let pasteData: pasteboard.PasteData = pasteboard.createData(pasteboard.MIMETYPE_TEXT_PLAIN, text);
+      let systemPasteboard: pasteboard.SystemPasteboard = pasteboard.getSystemPasteboard();
       systemPasteboard.setDataSync(pasteData);
-    } catch (err) {
-      hilog.error(0x0000, "siyuan", "Failed to set PasteData. Cause: " + err.message);
+    } catch (e) {
+      hilog.error(0x0000, "siyuan", "Failed to set PasteData. Cause: " + e.message);
     }
   }
 
   readClipboard(): string {
-    let systemPasteboard: pasteboard.SystemPasteboard = pasteboard.getSystemPasteboard();
     try {
+      let systemPasteboard: pasteboard.SystemPasteboard = pasteboard.getSystemPasteboard();
       let result: pasteboard.PasteData = systemPasteboard.getDataSync();
       return result.getPrimaryText();
-    } catch (err) {
-      hilog.error(0x0000, "siyuan", "Failed to get PasteData. Cause: " + err.message);
+    } catch (e) {
+      hilog.error(0x0000, "siyuan", "Failed to get PasteData. Cause: " + e.message);
       return ""
     }
   }

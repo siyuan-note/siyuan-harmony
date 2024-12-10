@@ -66,7 +66,10 @@ struct Main {
             this.controller.registerJavaScriptProxy(this.jsHarmony, "JSHarmony",
               [
                 "openExternal",
-                "changeStatusBarColor"
+                "changeStatusBarColor",
+                "readClipboard",
+                "writeClipboard",
+                "writeHTMLClipboard"
               ]
             );
           })
