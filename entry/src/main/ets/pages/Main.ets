@@ -40,13 +40,13 @@ struct Main {
       Column() {
         Web({ src: '', controller: this.controller })
           .javaScriptAccess(true)
-          .domStorageAccess(true)// .imageAccess(true)
-            // .onlineImageAccess(true)
-            // .fileAccess(true)
-          .cacheMode(CacheMode.Online)// .mediaPlayGestureAccess(true)
-            // .mixedMode(MixedMode.All)
-            // .layoutMode(WebLayoutMode.FIT_CONTENT)
-            // .zoomAccess(false)
+          .domStorageAccess(true)
+          .imageAccess(true)
+          .onlineImageAccess(true)
+          .cacheMode(CacheMode.Online)
+          .mediaPlayGestureAccess(true)
+          .mixedMode(MixedMode.All)
+          .zoomAccess(false)
           .textZoomRatio(100)
           .onControllerAttached(() => {
             const context = getContext();
