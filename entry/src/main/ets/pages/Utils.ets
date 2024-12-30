@@ -18,8 +18,8 @@
 
 import { fileIo as fs } from '@kit.CoreFileKit';
 import { bundleManager, common, UIAbility, Want } from '@kit.AbilityKit';
-import { BusinessError, zlib } from '@kit.BasicServicesKit';
 import { hilog } from '@kit.PerformanceAnalysisKit';
+import napi from 'libentry.so';
 
 /**
  * 工具类。
@@ -49,10 +49,10 @@ export struct Utils {
   }
 
   static async initAppearance(ability: UIAbility) {
-    // if (!Utils.needUnzipAssets(ability)) {
-    //   hilog.debug(0x0000, "siyuan", "Do not need unzip appearance [" + Utils.appVer + "]");
-    //   return;
-    // }
+    if (!Utils.needUnzipAssets(ability)) {
+      hilog.debug(0x0000, "siyuan", "Do not need unzip appearance [" + Utils.appVer + "]");
+      return;
+    }
 
     const appDir = ability.context.filesDir + "/app/";
     try {
@@ -64,33 +64,17 @@ export struct Utils {
     fs.writeSync(f.fd, Utils.appVer);
   }
 
-  static async unzipAsset(ability: UIAbility) {
+  static async unzipAsset(ability: UIAbility): Promise<void> {
     hilog.debug(0x0000, "siyuan", "Unzipping appearance [" + Utils.appVer + "]");
     const appZipData = ability.context.resourceManager.getRawFileContentSync("app.zip").buffer;
     const appZip = ability.context.tempDir + "/app.zip";
     const appZipFile = fs.openSync(appZip, fs.OpenMode.CREATE | fs.OpenMode.READ_WRITE);
     fs.writeSync(appZipFile.fd, appZipData);
     fs.closeSync(appZipFile);
-    let options: zlib.Options = {
-      level: zlib.CompressLevel.COMPRESS_LEVEL_DEFAULT_COMPRESSION
-    };
-
     const appDir = ability.context.filesDir + "/app/";
     fs.mkdirSync(appDir);
-    try {
-      zlib.decompressFile(appZip, appDir, options, (errData: BusinessError) => {
-        if (errData !== null) {
-          console.error(`errData is errCode: ${errData.code}  message:${errData.message}`);
-          return;
-        }
-
-        hilog.info(0x0000, "siyuan", "Unzipped appearance [" + Utils.appVer + "]");
-      })
-    } catch (errData) {
-      let code = (errData as BusinessError).code;
-      let message = (errData as BusinessError).message;
-      console.error(`errData is errCode:${code}  message:${message}`);
-    }
+    napi.unzip(appZip, appDir);
+    hilog.info(0x0000, "siyuan", "Unzipped appearance [" + Utils.appVer + "]");
   }
 
   static needUnzipAssets(ability: UIAbility): boolean {

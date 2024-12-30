@@ -85,6 +85,7 @@ extern GoString GetAssetAbsPath(GoString asset);
 extern GoString GetMimeTypeByExt(GoString ext);
 extern void SetTimezone(GoString container, GoString appDir, GoString timezoneID);
 extern void DisableFeature(char* feature);
+extern void Unzip(char* zipFilePath, char* destination);
 
 #ifdef __cplusplus
 }

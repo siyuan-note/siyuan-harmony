@@ -15,7 +15,7 @@ static napi_value StartKernel0(napi_env env, napi_callback_info info) {
     napi_value result;
 
     size_t argc = 2;
-    napi_value args[2] = {nullptr};
+    napi_value args[2] = {nullptr, nullptr};
     napi_get_cb_info(env, info, &argc, args, nullptr, nullptr);
     char *appDir = (value2String(env, args[0]));
     char *workspaceBaseDir = value2String(env, args[1]);
@@ -43,8 +43,8 @@ static napi_value IsHttpServing0(napi_env env, napi_callback_info info) {
 }
 
 static napi_value DisableFeature0(napi_env env, napi_callback_info info) {
-    size_t argc = 2;
-    napi_value args[2] = {nullptr};
+    size_t argc = 1;
+    napi_value args[1] = {nullptr};
     napi_get_cb_info(env, info, &argc, args, nullptr, nullptr);
     char *feature = value2String(env, args[0]);
 
@@ -54,12 +54,30 @@ static napi_value DisableFeature0(napi_env env, napi_callback_info info) {
     return NULL;
 }
 
+static napi_value Unzip0(napi_env env, napi_callback_info info) {
+     napi_value result;
+
+    size_t argc = 2;
+    napi_value args[2] = {nullptr, nullptr};
+    napi_get_cb_info(env, info, &argc, args, nullptr, nullptr);
+    char *zipPath = value2String(env, args[0]);
+    char *dest = value2String(env, args[1]);
+
+    std::thread t([zipPath, dest]() {
+        Unzip(zipPath, dest);
+    });
+    t.join();
+
+    return result;
+}
+
 EXTERN_C_START
 static napi_value Init(napi_env env, napi_value exports) {
     napi_property_descriptor desc[] = {
         {"startKernel", nullptr, StartKernel0, nullptr, nullptr, nullptr, napi_default, nullptr},
         {"isHttpServing", nullptr, IsHttpServing0, nullptr, nullptr, nullptr, napi_default, nullptr},
         {"disableFeature", nullptr, DisableFeature0, nullptr, nullptr, nullptr, napi_default, nullptr},
+        {"unzip", nullptr, Unzip0, nullptr, nullptr, nullptr, napi_default, nullptr},
     };
     napi_define_properties(env, exports, sizeof(desc) / sizeof(desc[0]), desc);
     return exports;
