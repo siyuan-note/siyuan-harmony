@@ -25,7 +25,7 @@ import { hilog } from '@kit.PerformanceAnalysisKit';
  * 工具类。
  *
  * @author <a href="https://88250.b3log.org">Liang Ding</a>
- * @version 1.0.0.1, Dec 3, 2024
+ * @version 1.0.0.2, Dec 30, 2024
  * @since 3.1.14
  */
 @Component
@@ -49,9 +49,10 @@ export struct Utils {
   }
 
   static async initAppearance(ability: UIAbility) {
-    if (!Utils.needUnzipAssets(ability)) {
-      return;
-    }
+    // if (!Utils.needUnzipAssets(ability)) {
+    //   hilog.debug(0x0000, "siyuan", "Do not need unzip appearance [" + Utils.appVer + "]");
+    //   return;
+    // }
 
     const appDir = ability.context.filesDir + "/app/";
     try {
