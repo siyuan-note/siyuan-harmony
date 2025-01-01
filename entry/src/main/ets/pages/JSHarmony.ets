@@ -27,10 +27,16 @@ import { pasteboard } from '@kit.BasicServicesKit';
  * JavaScript 接口。
  *
  * @author <a href="https://88250.b3log.org">Liang Ding</a>
- * @version 1.0.0.2, Dec 9, 2024
+ * @version 1.0.1.0, Jan 1, 2025
  * @since 3.1.14
  */
 export class JSHarmony {
+
+  returnDesktop() {
+    const context = getContext() as common.UIAbilityContext;
+    context.moveAbilityToBackground();
+  }
+
   writeHTMLClipboard(text: string, html: string) {
     try {
       let pasteData: pasteboard.PasteData = pasteboard.createData(pasteboard.MIMETYPE_TEXT_HTML, html);

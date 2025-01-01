@@ -26,7 +26,7 @@ import { Utils } from './Utils';
  * 主程序。
  *
  * @author <a href="https://88250.b3log.org">Liang Ding</a>
- * @version 1.0.0.1, Dec 4, 2024
+ * @version 1.0.1.0, Jan 1, 2025
  * @since 3.1.14
  */
 @Entry
@@ -69,7 +69,8 @@ struct Main {
                 "changeStatusBarColor",
                 "readClipboard",
                 "writeClipboard",
-                "writeHTMLClipboard"
+                "writeHTMLClipboard",
+                "returnDesktop",
               ]
             );
           })
@@ -105,5 +106,11 @@ struct Main {
 
   async sleep(mills: number) {
     await new Promise<void>(resolve => setTimeout(resolve, mills))
+  }
+
+  onBackPress(): boolean | void {
+    hilog.debug(0x0000, "siyuan", "on back pressed")
+    this.controller.runJavaScript("javascript:window.goBack ? window.goBack() : window.history.back()");
+    return true;
   }
 }
