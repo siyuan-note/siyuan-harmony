@@ -25,13 +25,13 @@ import napi from 'libentry.so';
  * 工具类。
  *
  * @author <a href="https://88250.b3log.org">Liang Ding</a>
- * @version 1.0.0.2, Dec 30, 2024
+ * @version 1.0.0.3, Feb 19, 2025
  * @since 3.1.14
  */
 @Component
 export struct Utils {
-  static appVer =
-    bundleManager.getBundleInfoForSelfSync(bundleManager.BundleFlag.GET_BUNDLE_INFO_WITH_APPLICATION).versionName;
+  public static appVer = bundleManager.getBundleInfoForSelfSync(bundleManager.BundleFlag.GET_BUNDLE_INFO_WITH_APPLICATION).versionName;
+  public static bundleName = bundleManager.getBundleInfoForSelfSync(bundleManager.BundleFlag.GET_BUNDLE_INFO_WITH_APPLICATION).name;
 
   static isFirstRun(ability: UIAbility): boolean {
     const workspaceBaseDir = ability.context.filesDir + "/workspaces"

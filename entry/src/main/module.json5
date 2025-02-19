@@ -31,6 +31,9 @@
               "action.system.home"
             ]
           }
+        ],
+        "backgroundModes": [
+          "dataTransfer"
         ]
       }
     ],
@@ -51,6 +54,9 @@
     "requestPermissions": [
       {
         "name": "ohos.permission.INTERNET",
+      },
+      {
+        "name": "ohos.permission.KEEP_BACKGROUND_RUNNING"
       }
     ]
   }

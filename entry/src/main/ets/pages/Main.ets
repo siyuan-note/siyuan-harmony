@@ -17,6 +17,9 @@
  */
 
 import { hilog } from '@kit.PerformanceAnalysisKit';
+import { backgroundTaskManager } from '@kit.BackgroundTasksKit';
+import { BusinessError } from '@kit.BasicServicesKit';
+import { wantAgent, WantAgent } from '@kit.AbilityKit';
 import { webview } from '@kit.ArkWeb';
 import napi from 'libentry.so';
 import { JSHarmony } from './JSHarmony';
@@ -26,7 +29,7 @@ import { Utils } from './Utils';
  * 主程序。
  *
  * @author <a href="https://88250.b3log.org">Liang Ding</a>
- * @version 1.0.1.0, Jan 1, 2025
+ * @version 1.0.1.1, Feb 19, 2025
  * @since 3.1.14
  */
 @Entry
@@ -60,7 +63,7 @@ struct Main {
             hilog.info(0x0000, "siyuan",
               "appDir [" + appDir + "], workspaceBaseDir [" + workspaceBaseDir + "], ua [" + ua + "]");
             napi.disableFeature("ai");
-            napi.startKernel(appDir, workspaceBaseDir);
+            this.startKernel(appDir, workspaceBaseDir);
             this.waitFotKernelHttpServing();
             this.controller.loadUrl("http://127.0.0.1:6806/appearance/boot/index.html");
             this.controller.registerJavaScriptProxy(this.jsHarmony, "JSHarmony",
@@ -91,6 +94,32 @@ struct Main {
       .width("100%")
     }
     .height("100%")
+  }
+
+  startKernel(appDir: string, workspaceBaseDir: string) {
+    let context = getContext(this);
+
+    let wantAgentInfo: wantAgent.WantAgentInfo = {
+      wants: [
+        {
+          bundleName: Utils.bundleName,
+          abilityName: "EntryAbility"
+        }
+      ],
+      actionType: wantAgent.OperationType.START_ABILITY,
+      requestCode: 0,
+      actionFlags: [wantAgent.WantAgentFlags.UPDATE_PRESENT_FLAG]
+    };
+
+    wantAgent.getWantAgent(wantAgentInfo).then((wantAgentObj: WantAgent) => {
+      backgroundTaskManager.startBackgroundRunning(context,
+        backgroundTaskManager.BackgroundMode.DATA_TRANSFER, wantAgentObj).then(() => {
+        napi.startKernel(appDir, workspaceBaseDir);
+        hilog.debug(0x0000, "siyuan", "kernel is running in background");
+      }).catch((err: BusinessError) => {
+        console.error(`Failed to operation startBackgroundRunning. Code is ${err.code}, message is ${err.message}`);
+      });
+    });
   }
 
   async waitFotKernelHttpServing() {
