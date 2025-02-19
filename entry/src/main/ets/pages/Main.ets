@@ -60,12 +60,6 @@ struct Main {
             const ua =
               "SiYuan/" + Utils.appVer + " https://b3log.org/siyuan Harmony " + this.controller.getUserAgent();
             this.controller.setCustomUserAgent(ua);
-            hilog.info(0x0000, "siyuan",
-              "appDir [" + appDir + "], workspaceBaseDir [" + workspaceBaseDir + "], ua [" + ua + "]");
-            napi.disableFeature("ai");
-            this.startKernel(appDir, workspaceBaseDir);
-            this.waitFotKernelHttpServing();
-            this.controller.loadUrl("http://127.0.0.1:6806/appearance/boot/index.html");
             this.controller.registerJavaScriptProxy(this.jsHarmony, "JSHarmony",
               [
                 "openExternal",
@@ -76,6 +70,10 @@ struct Main {
                 "returnDesktop",
               ]
             );
+            hilog.info(0x0000, "siyuan",
+              "appDir [" + appDir + "], workspaceBaseDir [" + workspaceBaseDir + "], ua [" + ua + "]");
+            napi.disableFeature("ai");
+            this.startKernel(appDir, workspaceBaseDir);
           })
           .onLoadIntercept((event) => {
             const url = event.data.getRequestUrl();
@@ -96,7 +94,7 @@ struct Main {
     .height("100%")
   }
 
-  startKernel(appDir: string, workspaceBaseDir: string) {
+  private startKernel(appDir: string, workspaceBaseDir: string) {
     let context = getContext(this);
 
     let wantAgentInfo: wantAgent.WantAgentInfo = {
@@ -116,6 +114,8 @@ struct Main {
         backgroundTaskManager.BackgroundMode.DATA_TRANSFER, wantAgentObj).then(() => {
         napi.startKernel(appDir, workspaceBaseDir);
         hilog.debug(0x0000, "siyuan", "kernel is running in background");
+        this.waitFotKernelHttpServing();
+        this.controller.loadUrl("http://127.0.0.1:6806/appearance/boot/index.html");
       }).catch((err: BusinessError) => {
         console.error(`Failed to operation startBackgroundRunning. Code is ${err.code}, message is ${err.message}`);
       });
