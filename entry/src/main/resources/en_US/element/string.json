@@ -11,6 +11,38 @@
     {
       "name": "EntryAbility_label",
       "value": "SiYuan"
+    },
+    {
+      "name": "slogan",
+      "value": "重构你的思维"
+    },
+    {
+      "name": "privacy_policy_two",
+      "value": "《隐私政策》"
+    },
+    {
+      "name": "simple_user_policy",
+      "value": "用户协议和隐私政策说明"
+    },
+    {
+      "name": "agree_privacy_policy",
+      "value": "同意"
+    },
+    {
+      "name": "disagree_privacy_policy",
+      "value": "不同意"
+    },
+    {
+      "name": "privacy_policy_start",
+      "value": "请您充分阅读并理解"
+    },
+    {
+      "name": "user_agreement_two",
+      "value": "《用户协议》"
+    },
+    {
+      "name": "and",
+      "value": "和"
     }
   ]
 }
