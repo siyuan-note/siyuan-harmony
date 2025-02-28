@@ -65,6 +65,7 @@ struct Main {
                 "openExternal",
                 "changeStatusBarColor",
                 "readClipboard",
+                "readHTMLClipboard",
                 "writeClipboard",
                 "writeHTMLClipboard",
                 "returnDesktop",
