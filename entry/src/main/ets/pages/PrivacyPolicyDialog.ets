@@ -26,7 +26,7 @@ import { Utils } from './Utils'
  * 鸣谢 https://github.com/ansen666/PrivacyPolicy
  *
  * @author <a href="https://88250.b3log.org">Liang Ding</a>
- * @version 1.0.0.0, Feb 27, 2025
+ * @version 1.0.0.1, Mar 4, 2025
  * @since 3.1.24
  */
 @Component
@@ -50,7 +50,7 @@ export default struct PrivacyPolicyDialog {
             })
             Span($r('app.string.and'))
             Span($r('app.string.privacy_policy_two')).fontColor($r('app.color.mainColor')).onClick(() => {
-              Utils.openWithBrowser("https://b3log.org/siyuan//privacy.html");
+              Utils.openWithBrowser("https://b3log.org/siyuan/privacy.html");
             })
           }.fontSize(16).fontColor($r('app.color.body_color')).margin({ left: 25, right: 25 })
         }.height(120)
