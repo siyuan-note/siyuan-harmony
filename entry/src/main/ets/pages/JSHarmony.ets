@@ -27,7 +27,7 @@ import { pasteboard } from '@kit.BasicServicesKit';
  * JavaScript 接口。
  *
  * @author <a href="https://88250.b3log.org">Liang Ding</a>
- * @version 1.1.0.0, Feb 28, 2025
+ * @version 1.2.0.0, Mar 5, 2025
  * @since 3.1.14
  */
 export class JSHarmony {
@@ -77,6 +77,10 @@ export class JSHarmony {
       hilog.error(0x0000, "siyuan", "Failed to get PasteData. Cause: " + e.message);
       return ""
     }
+  }
+
+  exportByDefault(url: string) {
+    this.openExternal(url);
   }
 
   openExternal(url: string) {
