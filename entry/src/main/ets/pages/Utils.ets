@@ -38,7 +38,19 @@ export struct Utils {
     return !fs.accessSync(workspaceBaseDir);
   }
 
-  static openWithBrowser(url: string) {
+  static openByDefaultBrowser(url: string) {
+    if (!url) {
+      return;
+    }
+
+    if (url.startsWith("#")) {
+      return;
+    }
+
+    if (url.startsWith("/")) {
+      url = "http://127.0.0.1:6806" + url;
+    }
+
     const context = getContext() as common.UIAbilityContext;
     const wantInfo: Want = {
       action: 'ohos.want.action.viewData',

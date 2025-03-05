@@ -84,7 +84,7 @@ struct Main {
             }
 
             if (url.toLowerCase().startsWith("http")) {
-              Utils.openWithBrowser(url);
+              Utils.openByDefaultBrowser(url);
               return true;
             }
 

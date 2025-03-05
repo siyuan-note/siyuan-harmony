@@ -46,11 +46,11 @@ export default struct PrivacyPolicyDialog {
           Text() {
             Span($r('app.string.privacy_policy_start'))
             Span($r('app.string.user_agreement_two')).fontColor($r('app.color.mainColor')).onClick(() => {
-              Utils.openWithBrowser("https://b3log.org/siyuan/eula.html");
+              Utils.openByDefaultBrowser("https://b3log.org/siyuan/eula.html");
             })
             Span($r('app.string.and'))
             Span($r('app.string.privacy_policy_two')).fontColor($r('app.color.mainColor')).onClick(() => {
-              Utils.openWithBrowser("https://b3log.org/siyuan/privacy.html");
+              Utils.openByDefaultBrowser("https://b3log.org/siyuan/privacy.html");
             })
           }.fontSize(16).fontColor($r('app.color.body_color')).margin({ left: 25, right: 25 })
         }.height(120)

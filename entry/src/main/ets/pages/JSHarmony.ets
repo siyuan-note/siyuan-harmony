@@ -31,7 +31,6 @@ import { pasteboard } from '@kit.BasicServicesKit';
  * @since 3.1.14
  */
 export class JSHarmony {
-
   returnDesktop() {
     const context = getContext() as common.UIAbilityContext;
     context.moveAbilityToBackground();
@@ -80,27 +79,21 @@ export class JSHarmony {
   }
 
   exportByDefault(url: string) {
-    this.openExternal(url);
+    if (!url.startsWith("assets/")) {
+      Utils.openByDefaultBrowser(url);
+      return;
+    }
+
+    Utils.openByDefaultBrowser(url);
   }
 
   openExternal(url: string) {
-    if (!url) {
+    if (!url.startsWith("assets/")) {
+      Utils.openByDefaultBrowser(url);
       return;
     }
 
-    if (url.startsWith("#")) {
-      return;
-    }
-
-    if (url.startsWith("assets/")) {
-      url = "http://127.0.0.1:6806/" + url;
-    }
-
-    if (url.startsWith("/")) {
-      url = "http://127.0.0.1:6806" + url;
-    }
-
-    Utils.openWithBrowser(url);
+    Utils.openByDefaultBrowser(url);
   }
 
   changeStatusBarColor(color: string, appearanceMode: number) {
