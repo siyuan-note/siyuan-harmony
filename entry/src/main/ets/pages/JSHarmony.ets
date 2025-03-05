@@ -71,7 +71,11 @@ export class JSHarmony {
     try {
       let systemPasteboard: pasteboard.SystemPasteboard = pasteboard.getSystemPasteboard();
       let result: pasteboard.PasteData = systemPasteboard.getDataSync();
-      return result.getPrimaryHtml();
+      let ret = result.getPrimaryHtml();
+      if (!ret) {
+        ret = result.getPrimaryText();
+      }
+      return ret;
     } catch (e) {
       hilog.error(0x0000, "siyuan", "Failed to get PasteData. Cause: " + e.message);
       return ""
