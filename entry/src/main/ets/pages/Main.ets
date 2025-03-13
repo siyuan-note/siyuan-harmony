@@ -24,12 +24,13 @@ import { webview } from '@kit.ArkWeb';
 import napi from 'libentry.so';
 import { JSHarmony } from './JSHarmony';
 import { Utils } from './Utils';
+import { wifiManager } from '@kit.ConnectivityKit';
 
 /**
  * 主程序。
  *
  * @author <a href="https://88250.b3log.org">Liang Ding</a>
- * @version 1.0.1.2, Mar 5, 2025
+ * @version 1.0.1.3, Mar 13, 2025
  * @since 3.1.14
  */
 @Entry
@@ -114,12 +115,19 @@ struct Main {
     wantAgent.getWantAgent(wantAgentInfo).then((wantAgentObj: WantAgent) => {
       backgroundTaskManager.startBackgroundRunning(context,
         backgroundTaskManager.BackgroundMode.DATA_TRANSFER, wantAgentObj).then(() => {
-        napi.startKernel(appDir, workspaceBaseDir);
-        hilog.debug(0x0000, "siyuan", "kernel is running in background");
+        const ipAddress = wifiManager.getIpInfo().ipAddress;
+        let ip = (ipAddress >>> 24) + "." + (ipAddress >> 16 & 0xFF) + "." + (ipAddress >> 8 & 0xFF) + "." +
+          (ipAddress & 0xFF);
+        if (ip && "" !== ip) {
+          ip += ",";
+        }
+        ip += "127.0.0.1";
+        napi.startKernel(appDir, workspaceBaseDir, ip);
+        hilog.debug(0x0000, "siyuan", "kernel is running in background [ip=" + ip + "]");
         this.waitFotKernelHttpServing();
         this.controller.loadUrl("http://127.0.0.1:6806/appearance/boot/index.html");
       }).catch((err: BusinessError) => {
-        console.error(`Failed to operation startBackgroundRunning. Code is ${err.code}, message is ${err.message}`);
+        hilog.error(0x0000, "siyuan", "start kernel in background failed: " + err)
       });
     });
   }
