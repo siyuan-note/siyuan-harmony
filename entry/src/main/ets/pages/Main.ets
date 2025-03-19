@@ -115,11 +115,16 @@ struct Main {
     wantAgent.getWantAgent(wantAgentInfo).then((wantAgentObj: WantAgent) => {
       backgroundTaskManager.startBackgroundRunning(context,
         backgroundTaskManager.BackgroundMode.DATA_TRANSFER, wantAgentObj).then(() => {
-        const ipAddress = wifiManager.getIpInfo().ipAddress;
-        let ip = (ipAddress >>> 24) + "." + (ipAddress >> 16 & 0xFF) + "." + (ipAddress >> 8 & 0xFF) + "." +
-          (ipAddress & 0xFF);
-        if (ip && "" !== ip) {
-          ip += ",";
+        let ip = "";
+        try {
+          const ipAddress = wifiManager.getIpInfo().ipAddress;
+          ip = (ipAddress >>> 24) + "." + (ipAddress >> 16 & 0xFF) + "." + (ipAddress >> 8 & 0xFF) + "." +
+            (ipAddress & 0xFF);
+          if (ip && "" !== ip) {
+            ip += ",";
+          }
+        } catch (e) {
+          hilog.error(0x0000, "siyuan", "get IP info failed: " + e);
         }
         ip += "127.0.0.1";
         napi.startKernel(appDir, workspaceBaseDir, ip);
