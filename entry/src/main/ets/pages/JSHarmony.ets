@@ -27,7 +27,7 @@ import { pasteboard } from '@kit.BasicServicesKit';
  * JavaScript 接口。
  *
  * @author <a href="https://88250.b3log.org">Liang Ding</a>
- * @version 1.2.0.0, Mar 5, 2025
+ * @version 1.2.1.0, Mar 23, 2025
  * @since 3.1.14
  */
 export class JSHarmony {
@@ -60,7 +60,14 @@ export class JSHarmony {
     try {
       let systemPasteboard: pasteboard.SystemPasteboard = pasteboard.getSystemPasteboard();
       let result: pasteboard.PasteData = systemPasteboard.getDataSync();
-      return result.getPrimaryText();
+      if (!result) {
+        return "";
+      }
+      let ret = result.getPrimaryText();
+      if (!ret) {
+        ret = "";
+      }
+      return ret;
     } catch (e) {
       hilog.error(0x0000, "siyuan", "Failed to get PasteData. Cause: " + e.message);
       return ""
@@ -73,7 +80,7 @@ export class JSHarmony {
       let result: pasteboard.PasteData = systemPasteboard.getDataSync();
       let ret = result.getPrimaryHtml();
       if (!ret) {
-        ret = result.getPrimaryText();
+        ret = "";
       }
       return ret;
     } catch (e) {
