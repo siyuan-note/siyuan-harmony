@@ -30,7 +30,7 @@ import { wifiManager } from '@kit.ConnectivityKit';
  * 主程序。
  *
  * @author <a href="https://88250.b3log.org">Liang Ding</a>
- * @version 1.0.1.3, Mar 13, 2025
+ * @version 1.0.2.0, Jul 10, 2025
  * @since 3.1.14
  */
 @Entry
@@ -79,17 +79,7 @@ struct Main {
             this.startKernel(appDir, workspaceBaseDir);
           })
           .onLoadIntercept((event) => {
-            const url = event.data.getRequestUrl();
-            if (-1 < url.indexOf("127.0.0.1")) {
-              return false;
-            }
-
-            if (url.toLowerCase().startsWith("http")) {
-              Utils.openByDefaultBrowser(url);
-              return true;
-            }
-
-            return true;
+            return false;
           });
       }
       .width("100%")
