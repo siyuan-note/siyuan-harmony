@@ -22,12 +22,15 @@ import window from '@ohos.window';
 import hilog from '@ohos.hilog';
 import { BusinessError } from '@ohos.base';
 import { pasteboard } from '@kit.BasicServicesKit';
+import napi from 'libentry.so';
+import { Want, wantConstant } from '@kit.AbilityKit';
+import { fileUri, fileIo as fs } from '@kit.CoreFileKit';
 
 /**
  * JavaScript 接口。
  *
  * @author <a href="https://88250.b3log.org">Liang Ding</a>
- * @version 1.2.1.0, Mar 23, 2025
+ * @version 1.2.1.1, Aug 27, 2025
  * @since 3.1.14
  */
 export class JSHarmony {
@@ -104,7 +107,24 @@ export class JSHarmony {
       return;
     }
 
-    Utils.openByDefaultBrowser(url);
+    // Support opening assets through other apps on HarmonyOS NEXT https://github.com/siyuan-note/siyuan/issues/15691
+    const assetAbsPath = napi.getAssetAbsPath(url);
+    if (!fs.accessSync(assetAbsPath)) {
+      url = "http://127.0.0.1:6806/" + url;
+      Utils.openByDefaultBrowser(url);
+      return;
+    }
+
+    let uri = fileUri.getUriFromPath(assetAbsPath);
+    const context = getContext() as common.UIAbilityContext;
+    const wantInfo: Want = {
+      action: 'ohos.want.action.viewData',
+      entities: ['entity.system.browsable'],
+      uri: uri,
+      flags: wantConstant.Flags.FLAG_AUTH_WRITE_URI_PERMISSION | wantConstant.Flags.FLAG_AUTH_READ_URI_PERMISSION
+    }
+    context.startAbility(wantInfo);
+    return;
   }
 
   changeStatusBarColor(color: string, appearanceMode: number) {

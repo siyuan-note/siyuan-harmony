@@ -20,6 +20,7 @@
 #include "napi/native_api.h"
 #include "string.h"
 #include "thread"
+#include "future"
 
 static char *value2String(napi_env env, napi_value value) {
     size_t len = 0;
@@ -50,10 +51,15 @@ static napi_value StartKernel0(napi_env env, napi_callback_info info) {
 static napi_value IsHttpServing0(napi_env env, napi_callback_info info) {
     napi_value result;
 
-    GoUint8 ret;
-    std::thread t([&ret]() { ret = IsHttpServing(); });
+    std::promise<GoUint8> promise;
+    std::future<GoUint8> future = promise.get_future();
+    std::thread t([&promise]() { 
+        GoUint8 ok = IsHttpServing();
+        promise.set_value(ok);
+    });
     t.join();
-
+    
+    GoUint8 ret = future.get();
     napi_create_uint32(env, ret, &result);
     return result;
 }
@@ -85,6 +91,43 @@ static napi_value Unzip0(napi_env env, napi_callback_info info) {
     return result;
 }
 
+static napi_value GetAssetAbsPath0(napi_env env, napi_callback_info info) {
+    napi_value result;
+
+    size_t argc = 1;
+    napi_value args[1] = {nullptr};
+    napi_get_cb_info(env, info, &argc, args, nullptr, nullptr);
+    char *relativePath = value2String(env, args[0]);
+
+    std::promise<char *> promise;
+    std::future<char *> future = promise.get_future();
+    std::thread t([&promise, relativePath]() {
+        char *absPath = GetAssetAbsPath(relativePath);
+        promise.set_value(absPath);
+    });
+    t.join();
+
+    char *absPath = future.get();
+    napi_create_string_utf8(env, absPath, strlen(absPath), &result);
+    return result;
+}
+
+static napi_value GetCurrentWorkspacePath0(napi_env env, napi_callback_info info) {
+    napi_value result;
+
+    std::promise<char *> promise;
+    std::future<char *> future = promise.get_future();
+    std::thread t([&promise]() {
+        char *workspace = GetCurrentWorkspacePath();
+        promise.set_value(workspace);
+    });
+    t.join();
+
+    char *workspace = future.get();
+    napi_create_string_utf8(env, workspace, strlen(workspace), &result);
+    return result;
+}
+
 EXTERN_C_START
 static napi_value Init(napi_env env, napi_value exports) {
     napi_property_descriptor desc[] = {
@@ -92,6 +135,9 @@ static napi_value Init(napi_env env, napi_value exports) {
         {"isHttpServing", nullptr, IsHttpServing0, nullptr, nullptr, nullptr, napi_default, nullptr},
         {"disableFeature", nullptr, DisableFeature0, nullptr, nullptr, nullptr, napi_default, nullptr},
         {"unzip", nullptr, Unzip0, nullptr, nullptr, nullptr, napi_default, nullptr},
+        {"getAssetAbsPath", nullptr, GetAssetAbsPath0, nullptr, nullptr, nullptr, napi_default, nullptr},
+        {"getCurrentWorkspacePath", nullptr, GetCurrentWorkspacePath0, nullptr, nullptr, nullptr, napi_default,
+         nullptr},
     };
     napi_define_properties(env, exports, sizeof(desc) / sizeof(desc[0]), desc);
     return exports;
