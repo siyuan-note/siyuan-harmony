@@ -2,6 +2,7 @@ import { AbilityConstant, UIAbility, Want } from '@kit.AbilityKit';
 import { hilog } from '@kit.PerformanceAnalysisKit';
 import { window } from '@kit.ArkUI';
 import { Utils } from "../pages/Utils";
+import { BusinessError } from '@kit.BasicServicesKit';
 
 export default class EntryAbility extends UIAbility {
   onCreate(want: Want, launchParam: AbilityConstant.LaunchParam): void {
@@ -14,6 +15,26 @@ export default class EntryAbility extends UIAbility {
 
   async onWindowStageCreate(windowStage: window.WindowStage): Promise<void> {
     hilog.info(0x0000, "siyuan", '%{public}s', 'Ability onWindowStageCreate');
+
+    let windowClass: window.Window | undefined = undefined;
+    windowStage.getMainWindow((err: BusinessError, data) => {
+      const errCode: number = err.code;
+      if (errCode) {
+        hilog.error(0x0000, "siyuan", err.message);
+        return;
+      }
+
+      windowClass = data;
+      try {
+        let promise = windowClass.setSpecificSystemBarEnabled('navigationIndicator', false);
+        promise.then(() => {
+        }).catch((err: BusinessError) => {
+          hilog.error(0x0000, "siyuan", `Failed to set the system bar to be invisible. Cause code: ${err.code}, message: ${err.message}`);
+        });
+      } catch (exception) {
+        hilog.error(0x0000, "siyuan", `Failed to set the system bar to be invisible. Cause code: ${exception.code}, message: ${exception.message}`);
+      }
+    });
 
     await Utils.initAppearance(this);
     if (Utils.isFirstRun(this)) {
