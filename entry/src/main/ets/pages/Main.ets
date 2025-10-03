@@ -30,7 +30,7 @@ import { wifiManager } from '@kit.ConnectivityKit';
  * 主程序。
  *
  * @author <a href="https://88250.b3log.org">Liang Ding</a>
- * @version 1.0.2.0, Jul 10, 2025
+ * @version 1.0.2.1, Oct 3, 2025
  * @since 3.1.14
  */
 @Entry
@@ -43,6 +43,7 @@ struct Main {
     Row() {
       Column() {
         Web({ src: '', controller: this.controller })
+          .darkMode(WebDarkMode.Auto)
           .javaScriptAccess(true)
           .domStorageAccess(true)
           .imageAccess(true)
