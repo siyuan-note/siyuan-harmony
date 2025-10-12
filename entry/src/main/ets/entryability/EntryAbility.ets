@@ -26,11 +26,10 @@ export default class EntryAbility extends UIAbility {
 
       windowClass = data;
       try {
-        let promise = windowClass.setSpecificSystemBarEnabled('navigationIndicator', false);
-        promise.then(() => {
-        }).catch((err: BusinessError) => {
-          hilog.error(0x0000, "siyuan", `Failed to set the system bar to be invisible. Cause code: ${err.code}, message: ${err.message}`);
-        });
+        windowClass.setSpecificSystemBarEnabled('navigationIndicator', false);
+        if (Utils.isTablet()) {
+          windowClass.setSpecificSystemBarEnabled('status', false);
+        }
       } catch (exception) {
         hilog.error(0x0000, "siyuan", `Failed to set the system bar to be invisible. Cause code: ${exception.code}, message: ${exception.message}`);
       }

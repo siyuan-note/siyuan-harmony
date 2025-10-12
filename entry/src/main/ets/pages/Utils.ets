@@ -20,6 +20,7 @@ import { fileIo as fs } from '@kit.CoreFileKit';
 import { bundleManager, common, UIAbility, Want } from '@kit.AbilityKit';
 import { hilog } from '@kit.PerformanceAnalysisKit';
 import napi from 'libentry.so';
+import { deviceInfo } from '@kit.BasicServicesKit';
 
 /**
  * 工具类。
@@ -30,8 +31,10 @@ import napi from 'libentry.so';
  */
 @Component
 export struct Utils {
-  public static appVer = bundleManager.getBundleInfoForSelfSync(bundleManager.BundleFlag.GET_BUNDLE_INFO_WITH_APPLICATION).versionName;
-  public static bundleName = bundleManager.getBundleInfoForSelfSync(bundleManager.BundleFlag.GET_BUNDLE_INFO_WITH_APPLICATION).name;
+  public static appVer =
+    bundleManager.getBundleInfoForSelfSync(bundleManager.BundleFlag.GET_BUNDLE_INFO_WITH_APPLICATION).versionName;
+  public static bundleName =
+    bundleManager.getBundleInfoForSelfSync(bundleManager.BundleFlag.GET_BUNDLE_INFO_WITH_APPLICATION).name;
 
   static isFirstRun(ability: UIAbility): boolean {
     const workspaceBaseDir = ability.context.filesDir + "/workspaces"
@@ -95,6 +98,10 @@ export struct Utils {
       return true
     }
     return fs.readTextSync(verFilePath) != Utils.appVer;
+  }
+
+  static isTablet(): boolean {
+    return "tablet" === deviceInfo.deviceType
   }
 
   build() {

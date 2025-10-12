@@ -128,6 +128,10 @@ export class JSHarmony {
   }
 
   changeStatusBarColor(color: string, appearanceMode: number) {
+    if (Utils.isTablet()) {
+      return;
+    }
+
     const context = getContext() as common.UIAbilityContext;
     window.getLastWindow(context).then((windowStyle: window.Window) => {
       try {
