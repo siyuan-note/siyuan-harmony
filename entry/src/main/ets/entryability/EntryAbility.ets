@@ -1,8 +1,9 @@
 import { AbilityConstant, UIAbility, Want } from '@kit.AbilityKit';
 import { hilog } from '@kit.PerformanceAnalysisKit';
 import { window } from '@kit.ArkUI';
-import { Utils } from "../pages/Utils";
+import { Utils } from '../pages/Utils';
 import { BusinessError } from '@kit.BasicServicesKit';
+import common from '@ohos.app.ability.common';
 
 export default class EntryAbility extends UIAbility {
   onCreate(want: Want, launchParam: AbilityConstant.LaunchParam): void {
@@ -29,9 +30,17 @@ export default class EntryAbility extends UIAbility {
         windowClass.setSpecificSystemBarEnabled('navigationIndicator', false);
         if (Utils.isTablet()) {
           windowClass.setSpecificSystemBarEnabled('status', false);
+
+          windowClass.on('windowStatusChange', (statusType: window.WindowStatusType) => {
+            let context = getContext(this) as common.UIAbilityContext;
+            let win = context.windowStage.getMainWindowSync();
+            win.setSpecificSystemBarEnabled('navigationIndicator', false);
+            win.setSpecificSystemBarEnabled('status', false);
+          });
         }
       } catch (exception) {
-        hilog.error(0x0000, "siyuan", `Failed to set the system bar to be invisible. Cause code: ${exception.code}, message: ${exception.message}`);
+        hilog.error(0x0000, "siyuan",
+          `Failed to set the system bar to be invisible. Cause code: ${exception.code}, message: ${exception.message}`);
       }
     });
 
