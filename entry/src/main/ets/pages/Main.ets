@@ -19,7 +19,7 @@
 import { hilog } from '@kit.PerformanceAnalysisKit';
 import { backgroundTaskManager } from '@kit.BackgroundTasksKit';
 import { BusinessError } from '@kit.BasicServicesKit';
-import { wantAgent, WantAgent } from '@kit.AbilityKit';
+import { common, wantAgent, WantAgent } from '@kit.AbilityKit';
 import { webview } from '@kit.ArkWeb';
 import napi from 'libentry.so';
 import { JSHarmony } from './JSHarmony';
@@ -38,10 +38,13 @@ import { wifiManager } from '@kit.ConnectivityKit';
 struct Main {
   controller: webview.WebviewController = new webview.WebviewController();
   @State jsHarmony: JSHarmony = new JSHarmony();
+  context = this.getUIContext();
+  uiAbilityContext = this.context.getHostContext() as common.UIAbilityContext;
+  private windowClass = this.uiAbilityContext.windowStage.getMainWindowSync();
 
   build() {
-    Row() {
-      Column() {
+    NavDestination() {
+      Row() {
         Web({ src: '', controller: this.controller })
           .darkMode(WebDarkMode.Auto)
           .javaScriptAccess(true)
@@ -84,8 +87,19 @@ struct Main {
           });
       }
       .width("100%")
-    }
-    .height("100%")
+      .height("100%")
+    }.onShown(() => this.onShown())
+    .onHidden(() => this.onHidden())
+  }
+
+  onShown() {
+    this.windowClass.setWindowLayoutFullScreen(true);
+    this.windowClass.setWindowSystemBarEnable([]);
+  }
+
+  onHidden() {
+    this.windowClass.setWindowLayoutFullScreen(false);
+    this.windowClass.setWindowSystemBarEnable(['status', 'navigation']);
   }
 
   private startKernel(appDir: string, workspaceBaseDir: string) {
