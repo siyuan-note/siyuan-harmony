@@ -21,7 +21,7 @@ import common from '@ohos.app.ability.common';
 import window from '@ohos.window';
 import hilog from '@ohos.hilog';
 import { BusinessError } from '@ohos.base';
-import { pasteboard } from '@kit.BasicServicesKit';
+import { pasteboard, systemDateTime } from '@kit.BasicServicesKit';
 import napi from 'libentry.so';
 import { Want, wantConstant } from '@kit.AbilityKit';
 import { fileUri, fileIo as fs } from '@kit.CoreFileKit';
@@ -99,6 +99,21 @@ export class JSHarmony {
     }
 
     Utils.openByDefaultBrowser(url);
+  }
+
+  async print(html: string) {
+    const filename = systemDateTime.getTime() + ".pdf";
+    try {
+      await Utils.print(html, filename)
+    } catch (e) {
+      hilog.error(0x0000, "siyuan", "print failed: " + e);
+    }
+  }
+
+  async getScreenWidthPx(): Promise<number> {
+    const context = getContext() as common.UIAbilityContext;
+    const win = await window.getLastWindow(context);
+    return win.getWindowProperties().windowRect.width;
   }
 
   openExternal(url: string) {

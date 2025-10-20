@@ -69,6 +69,8 @@ struct Main {
               [
                 "exportByDefault",
                 "openExternal",
+                "print",
+                "getScreenWidthPx",
                 "changeStatusBarColor",
                 "readClipboard",
                 "readHTMLClipboard",

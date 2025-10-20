@@ -21,12 +21,15 @@ import { bundleManager, common, UIAbility, Want } from '@kit.AbilityKit';
 import { hilog } from '@kit.PerformanceAnalysisKit';
 import napi from 'libentry.so';
 import { deviceInfo } from '@kit.BasicServicesKit';
+import router from '@ohos.router';
+import "./Print";
+import { PrintParam } from './Print';
 
 /**
  * 工具类。
  *
  * @author <a href="https://88250.b3log.org">Liang Ding</a>
- * @version 1.0.0.3, Feb 19, 2025
+ * @version 1.1.0.0, Oct 20, 2025
  * @since 3.1.14
  */
 @Component
@@ -35,6 +38,16 @@ export struct Utils {
     bundleManager.getBundleInfoForSelfSync(bundleManager.BundleFlag.GET_BUNDLE_INFO_WITH_APPLICATION).versionName;
   public static bundleName =
     bundleManager.getBundleInfoForSelfSync(bundleManager.BundleFlag.GET_BUNDLE_INFO_WITH_APPLICATION).name;
+
+  static async print(html: string, filename: string) {
+    const param = new PrintParam();
+    param.html = html;
+    param.filename = filename;
+    router.pushUrl({
+      url: "pages/Print",
+      params: param,
+    });
+  }
 
   static isFirstRun(ability: UIAbility): boolean {
     const workspaceBaseDir = ability.context.filesDir + "/workspaces"

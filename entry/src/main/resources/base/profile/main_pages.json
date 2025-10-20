@@ -1,6 +1,7 @@
 {
   "src": [
     "pages/Agreement",
-    "pages/Main"
+    "pages/Main",
+    "pages/Print"
   ]
 }
