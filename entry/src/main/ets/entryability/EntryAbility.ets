@@ -27,7 +27,7 @@ import common from '@ohos.app.ability.common';
  * 主程序入口点。
  *
  * @author <a href="https://88250.b3log.org">Liang Ding</a>
- * @version 1.0.0.1, Oct 18, 2025
+ * @version 1.0.0.2, Oct 20, 2025
  * @since 3.1.14
  */
 export default class EntryAbility extends UIAbility {
@@ -52,9 +52,9 @@ export default class EntryAbility extends UIAbility {
 
       windowClass = data;
       try {
-        windowClass.setWindowLayoutFullScreen(true);
         windowClass.setSpecificSystemBarEnabled('navigationIndicator', false);
         if (Utils.isTablet()) {
+          windowClass.setWindowLayoutFullScreen(true);
           windowClass.setSpecificSystemBarEnabled('status', false);
 
           windowClass.on('windowStatusChange', (statusType: window.WindowStatusType) => {

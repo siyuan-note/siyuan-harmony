@@ -30,7 +30,7 @@ import { wifiManager } from '@kit.ConnectivityKit';
  * 主程序。
  *
  * @author <a href="https://88250.b3log.org">Liang Ding</a>
- * @version 1.0.2.1, Oct 3, 2025
+ * @version 1.0.2.2, Oct 20, 2025
  * @since 3.1.14
  */
 @Entry
@@ -93,12 +93,10 @@ struct Main {
   }
 
   onShown() {
-    this.windowClass.setWindowLayoutFullScreen(true);
     this.windowClass.setWindowSystemBarEnable([]);
   }
 
   onHidden() {
-    this.windowClass.setWindowLayoutFullScreen(false);
     this.windowClass.setWindowSystemBarEnable(['status', 'navigation']);
   }
 
