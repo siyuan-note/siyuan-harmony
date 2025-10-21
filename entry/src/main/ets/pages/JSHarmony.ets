@@ -143,7 +143,7 @@ export class JSHarmony {
   }
 
   changeStatusBarColor(color: string, appearanceMode: number) {
-    if (Utils.isTablet()) {
+    if (Utils.isTablet() || Utils.isPC()) {
       return;
     }
 

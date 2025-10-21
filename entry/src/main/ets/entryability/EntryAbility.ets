@@ -53,7 +53,7 @@ export default class EntryAbility extends UIAbility {
       windowClass = data;
       try {
         windowClass.setSpecificSystemBarEnabled('navigationIndicator', false);
-        if (Utils.isTablet()) {
+        if (Utils.isTablet() || Utils.isPC()) {
           windowClass.setWindowLayoutFullScreen(true);
           windowClass.setSpecificSystemBarEnabled('status', false);
 

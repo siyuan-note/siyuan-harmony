@@ -117,6 +117,10 @@ export struct Utils {
     return "tablet" === deviceInfo.deviceType
   }
 
+  static isPC(): boolean {
+    return "2in1" === deviceInfo.deviceType
+  }
+
   build() {
   }
 }
