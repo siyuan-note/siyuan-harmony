@@ -33,15 +33,16 @@ static char *value2String(napi_env env, napi_value value) {
 static napi_value StartKernel0(napi_env env, napi_callback_info info) {
     napi_value result;
 
-    size_t argc = 2;
-    napi_value args[3] = {nullptr, nullptr, nullptr};
+    size_t argc = 4;
+    napi_value args[4] = {nullptr, nullptr, nullptr, nullptr};
     napi_get_cb_info(env, info, &argc, args, nullptr, nullptr);
     char *appDir = (value2String(env, args[0]));
     char *workspaceBaseDir = value2String(env, args[1]);
-    char *ip = value2String(env, args[2]);
-    std::thread t([appDir, workspaceBaseDir, ip]() {
-        StartKernel((char *)"harmony", appDir, workspaceBaseDir, (char *)"Asia/Shanghai", ip, (char *)"zh_CN",
-                    (char *)"5.0");
+    char *localIPs = value2String(env, args[2]);
+    char *osVer = value2String(env, args[3]);
+    std::thread t([appDir, workspaceBaseDir, localIPs, osVer]() {
+        StartKernel((char *)"harmony", appDir, workspaceBaseDir, (char *)"Asia/Shanghai", localIPs, (char *)"zh_CN",
+                    osVer);
     });
     t.join();
 
@@ -53,12 +54,12 @@ static napi_value IsHttpServing0(napi_env env, napi_callback_info info) {
 
     std::promise<GoUint8> promise;
     std::future<GoUint8> future = promise.get_future();
-    std::thread t([&promise]() { 
+    std::thread t([&promise]() {
         GoUint8 ok = IsHttpServing();
         promise.set_value(ok);
     });
     t.join();
-    
+
     GoUint8 ret = future.get();
     napi_create_uint32(env, ret, &result);
     return result;

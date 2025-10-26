@@ -18,19 +18,18 @@
 
 import { hilog } from '@kit.PerformanceAnalysisKit';
 import { backgroundTaskManager } from '@kit.BackgroundTasksKit';
-import { BusinessError } from '@kit.BasicServicesKit';
+import { BusinessError, deviceInfo } from '@kit.BasicServicesKit';
 import { common, wantAgent, WantAgent } from '@kit.AbilityKit';
 import { webview } from '@kit.ArkWeb';
 import napi from 'libentry.so';
 import { JSHarmony } from './JSHarmony';
 import { Utils } from './Utils';
-import { wifiManager } from '@kit.ConnectivityKit';
 
 /**
  * 主程序。
  *
  * @author <a href="https://88250.b3log.org">Liang Ding</a>
- * @version 1.0.2.2, Oct 20, 2025
+ * @version 1.0.2.3, Oct 26, 2025
  * @since 3.1.14
  */
 @Entry
@@ -120,20 +119,9 @@ struct Main {
     wantAgent.getWantAgent(wantAgentInfo).then((wantAgentObj: WantAgent) => {
       backgroundTaskManager.startBackgroundRunning(context,
         backgroundTaskManager.BackgroundMode.DATA_TRANSFER, wantAgentObj).then(() => {
-        let ip = "";
-        try {
-          const ipAddress = wifiManager.getIpInfo().ipAddress;
-          ip = (ipAddress >>> 24) + "." + (ipAddress >> 16 & 0xFF) + "." + (ipAddress >> 8 & 0xFF) + "." +
-            (ipAddress & 0xFF);
-          if (ip && "" !== ip) {
-            ip += ",";
-          }
-        } catch (e) {
-          hilog.error(0x0000, "siyuan", "get IP info failed: " + e);
-        }
-        ip += "127.0.0.1";
-        napi.startKernel(appDir, workspaceBaseDir, ip);
-        hilog.debug(0x0000, "siyuan", "kernel is running in background [ip=" + ip + "]");
+        const localIPs = Utils.getIPAddressList();
+        const osVer: string = deviceInfo.osFullName.replace("OpenHarmony-", "");
+        napi.startKernel(appDir, workspaceBaseDir, localIPs, osVer);
         this.waitFotKernelHttpServing();
         this.controller.loadUrl("http://127.0.0.1:6806/appearance/boot/index.html");
       }).catch((err: BusinessError) => {
