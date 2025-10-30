@@ -34,7 +34,8 @@
         ],
         "backgroundModes": [
           "dataTransfer"
-        ]
+        ],
+        "orientation": "auto_rotation_restricted"
       }
     ],
     "extensionAbilities": [
