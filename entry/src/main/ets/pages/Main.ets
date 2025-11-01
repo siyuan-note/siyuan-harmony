@@ -29,7 +29,7 @@ import { Utils } from './Utils';
  * 主程序。
  *
  * @author <a href="https://88250.b3log.org">Liang Ding</a>
- * @version 1.0.2.3, Oct 26, 2025
+ * @version 1.0.2.4, Nov 1, 2025
  * @since 3.1.14
  */
 @Entry
@@ -85,6 +85,27 @@ struct Main {
           })
           .onLoadIntercept((event) => {
             return false;
+          })
+          .onInterceptRequest((event) => {
+            if (!event) {
+              return null;
+            }
+
+            const url = event.request.getRequestUrl();
+            if (-1 < url.indexOf("127.0.0.1")) {
+              return null;
+            }
+
+            if (-1 < url.indexOf("siyuan://api/system/exit")) {
+              this.exit();
+              return new WebResourceResponse();
+            }
+
+            if (url.toLowerCase().startsWith("http")) {
+              Utils.openByDefaultBrowser(url);
+              return new WebResourceResponse();
+            }
+            return null;
           });
       }
       .width("100%")
@@ -99,6 +120,11 @@ struct Main {
 
   onHidden() {
     this.windowClass.setWindowSystemBarEnable(['status', 'navigation']);
+  }
+
+  private exit() {
+    this.uiAbilityContext.terminateSelf();
+    backgroundTaskManager.stopBackgroundRunning(this.uiAbilityContext);
   }
 
   private startKernel(appDir: string, workspaceBaseDir: string) {
