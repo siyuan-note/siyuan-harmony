@@ -16,9 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { hilog } from '@kit.PerformanceAnalysisKit';
-import { router } from '@kit.ArkUI'
-import { Utils } from './Utils'
+import { Utils } from './Utils';
 
 /**
  * 隐私政策弹窗。
