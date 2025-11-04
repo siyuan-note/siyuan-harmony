@@ -21,13 +21,12 @@ import { hilog } from '@kit.PerformanceAnalysisKit';
 import { window } from '@kit.ArkUI';
 import { Utils } from '../pages/Utils';
 import { BusinessError } from '@kit.BasicServicesKit';
-import common from '@ohos.app.ability.common';
 
 /**
  * 主程序入口点。
  *
  * @author <a href="https://88250.b3log.org">Liang Ding</a>
- * @version 1.0.0.2, Oct 20, 2025
+ * @version 1.0.0.3, Nov 4, 2025
  * @since 3.1.14
  */
 export default class EntryAbility extends UIAbility {
@@ -52,17 +51,10 @@ export default class EntryAbility extends UIAbility {
 
       windowClass = data;
       try {
-        windowClass.setSpecificSystemBarEnabled('navigationIndicator', false);
         if (Utils.isTablet() || Utils.isPC()) {
           windowClass.setWindowLayoutFullScreen(true);
           windowClass.setSpecificSystemBarEnabled('status', false);
-
-          windowClass.on('windowStatusChange', (statusType: window.WindowStatusType) => {
-            let context = getContext(this) as common.UIAbilityContext;
-            let win = context.windowStage.getMainWindowSync();
-            win.setSpecificSystemBarEnabled('navigationIndicator', false);
-            win.setSpecificSystemBarEnabled('status', false);
-          });
+          windowClass.setSpecificSystemBarEnabled('navigationIndicator', false);
         }
       } catch (exception) {
         hilog.error(0x0000, "siyuan",
