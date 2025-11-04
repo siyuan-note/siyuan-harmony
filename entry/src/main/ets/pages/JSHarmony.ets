@@ -148,13 +148,13 @@ export class JSHarmony {
     }
 
     const context = getContext() as common.UIAbilityContext;
-    window.getLastWindow(context).then((windowStyle: window.Window) => {
+    window.getLastWindow(context).then((wnd: window.Window) => {
       try {
         const parsedColor = this.parseColor(color);
         hilog.info(0x0000, "siyuan",
           "Change statusbar [color=" + color + ", parsedColor=" + parsedColor + ", appearanceMode=" + appearanceMode +
             "]");
-        windowStyle.setWindowSystemBarProperties({
+        wnd.setWindowSystemBarProperties({
           statusBarColor: parsedColor,
           statusBarContentColor: 0 !== appearanceMode ? "#ffffff" : "#000000",
           navigationBarColor: parsedColor,
@@ -162,6 +162,7 @@ export class JSHarmony {
         }).catch((error: BusinessError) => {
           hilog.error(0x0000, "siyuan", JSON.stringify(error))
         })
+        wnd.setWindowBackgroundColor(parsedColor);
       } catch (e) {
         hilog.error(0x0000, "siyuan", JSON.stringify(e))
       }

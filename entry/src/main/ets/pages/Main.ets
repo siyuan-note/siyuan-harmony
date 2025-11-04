@@ -42,79 +42,67 @@ struct Main {
   private windowClass = this.uiAbilityContext.windowStage.getMainWindowSync();
 
   build() {
-    NavDestination() {
-      Row() {
-        Web({ src: '', controller: this.controller })
-          .darkMode(WebDarkMode.Auto)
-          .javaScriptAccess(true)
-          .domStorageAccess(true)
-          .imageAccess(true)
-          .onlineImageAccess(true)
-          .cacheMode(CacheMode.Online)
-          .mediaPlayGestureAccess(true)
-          .mixedMode(MixedMode.All)
-          .zoomAccess(false)
-          .textZoomRatio(100)
-          .onControllerAttached(() => {
-            const context = getContext();
-            const filesDir = context.filesDir;
-            const appDir = filesDir;
-            const workspaceBaseDir = filesDir + "/workspaces"
+    Row() {
+      Web({ src: '', controller: this.controller })
+        .darkMode(WebDarkMode.Auto)
+        .javaScriptAccess(true)
+        .domStorageAccess(true)
+        .imageAccess(true)
+        .onlineImageAccess(true)
+        .cacheMode(CacheMode.Online)
+        .mediaPlayGestureAccess(true)
+        .mixedMode(MixedMode.All)
+        .zoomAccess(false)
+        .textZoomRatio(100)
+        .onControllerAttached(() => {
+          const context = getContext();
+          const filesDir = context.filesDir;
+          const appDir = filesDir;
+          const workspaceBaseDir = filesDir + "/workspaces"
 
-            const ua =
-              "SiYuan/" + Utils.appVer + " https://b3log.org/siyuan Harmony " + this.controller.getUserAgent();
-            this.controller.setCustomUserAgent(ua);
-            this.controller.registerJavaScriptProxy(this.jsHarmony, "JSHarmony",
-              [
-                "exportByDefault",
-                "openExternal",
-                "print",
-                "getScreenWidthPx",
-                "changeStatusBarColor",
-                "readClipboard",
-                "readHTMLClipboard",
-                "writeClipboard",
-                "writeHTMLClipboard",
-                "returnDesktop",
-              ]
-            );
-            hilog.info(0x0000, "siyuan",
-              "appDir [" + appDir + "], workspaceBaseDir [" + workspaceBaseDir + "], ua [" + ua + "]");
-            napi.disableFeature("ai");
-            this.startKernel(appDir, workspaceBaseDir);
-          })
-          .onOverrideUrlLoading((webResourceRequest) => {
-            const url = webResourceRequest.getRequestUrl().toLowerCase();
+          const ua =
+            "SiYuan/" + Utils.appVer + " https://b3log.org/siyuan Harmony " + this.controller.getUserAgent();
+          this.controller.setCustomUserAgent(ua);
+          this.controller.registerJavaScriptProxy(this.jsHarmony, "JSHarmony",
+            [
+              "exportByDefault",
+              "openExternal",
+              "print",
+              "getScreenWidthPx",
+              "changeStatusBarColor",
+              "readClipboard",
+              "readHTMLClipboard",
+              "writeClipboard",
+              "writeHTMLClipboard",
+              "returnDesktop",
+            ]
+          );
+          hilog.info(0x0000, "siyuan",
+            "appDir [" + appDir + "], workspaceBaseDir [" + workspaceBaseDir + "], ua [" + ua + "]");
+          napi.disableFeature("ai");
+          this.startKernel(appDir, workspaceBaseDir);
+        })
+        .onOverrideUrlLoading((webResourceRequest) => {
+          const url = webResourceRequest.getRequestUrl().toLowerCase();
 
-            if (-1 < url.indexOf("127.0.0.1")) {
-              this.controller.loadUrl(url);
-              return true;
-            }
+          if (-1 < url.indexOf("127.0.0.1")) {
+            this.controller.loadUrl(url);
+            return true;
+          }
 
-            if (-1 < url.indexOf("siyuan://api/system/exit")) {
-              this.exit();
-              return true;
-            }
+          if (-1 < url.indexOf("siyuan://api/system/exit")) {
+            this.exit();
+            return true;
+          }
 
-            if (webResourceRequest.isMainFrame() && url.startsWith("http")) {
-              Utils.openByDefaultBrowser(url);
-              return true;
-            }
-            return false;
-          });
-      }
-      .width("100%")
-      .height("100%")
-    }.onShown(() => this.onShown())
-    .onHidden(() => this.onHidden())
-  }
-
-  onShown() {
-    this.windowClass.setWindowSystemBarEnable([]);
-  }
-
-  onHidden() {
-    this.windowClass.setWindowSystemBarEnable(['status', 'navigation']);
+          if (webResourceRequest.isMainFrame() && url.startsWith("http")) {
+            Utils.openByDefaultBrowser(url);
+            return true;
+          }
+          return false;
+        });
+    }
+    .width("100%");
   }
 
   private exit() {
