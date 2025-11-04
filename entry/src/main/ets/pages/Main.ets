@@ -37,9 +37,6 @@ import { Utils } from './Utils';
 struct Main {
   controller: webview.WebviewController = new webview.WebviewController();
   @State jsHarmony: JSHarmony = new JSHarmony();
-  context = this.getUIContext();
-  uiAbilityContext = this.context.getHostContext() as common.UIAbilityContext;
-  private windowClass = this.uiAbilityContext.windowStage.getMainWindowSync();
 
   build() {
     Row() {
@@ -100,14 +97,31 @@ struct Main {
             return true;
           }
           return false;
-        });
+        })
+        .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.BOTTOM])
     }
     .width("100%");
   }
 
+  aboutToAppear(): void {
+    if (!Utils.isTablet() && !Utils.isPC()) {
+      try {
+        const context = this.getUIContext();
+        const uiAbilityContext = context.getHostContext() as common.UIAbilityContext;
+        const wnd = uiAbilityContext.windowStage.getMainWindowSync();
+        wnd.setSpecificSystemBarEnabled('status', true);
+        wnd.setSpecificSystemBarEnabled('navigationIndicator', true);
+      } catch (e) {
+        hilog.error(0x0000, "siyuan", "Set main window system bar failed: " + e);
+      }
+    }
+  }
+
   private exit() {
-    this.uiAbilityContext.terminateSelf();
-    backgroundTaskManager.stopBackgroundRunning(this.uiAbilityContext);
+    const context = this.getUIContext();
+    const uiAbilityContext = context.getHostContext() as common.UIAbilityContext;
+    uiAbilityContext.terminateSelf();
+    backgroundTaskManager.stopBackgroundRunning(uiAbilityContext);
   }
 
   private startKernel(appDir: string, workspaceBaseDir: string) {

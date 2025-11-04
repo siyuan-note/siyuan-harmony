@@ -31,34 +31,29 @@ import { BusinessError } from '@kit.BasicServicesKit';
  */
 export default class EntryAbility extends UIAbility {
   onCreate(want: Want, launchParam: AbilityConstant.LaunchParam): void {
-    hilog.info(0x0000, "siyuan", '%{public}s', 'Ability onCreate');
+    hilog.info(0x0000, "siyuan", 'Ability onCreate');
   }
 
   onDestroy(): void {
-    hilog.info(0x0000, "siyuan", '%{public}s', 'Ability onDestroy');
+    hilog.info(0x0000, "siyuan", 'Ability onDestroy');
   }
 
   async onWindowStageCreate(windowStage: window.WindowStage): Promise<void> {
-    hilog.info(0x0000, "siyuan", '%{public}s', 'Ability onWindowStageCreate');
+    hilog.info(0x0000, "siyuan", 'Ability onWindowStageCreate');
 
-    let windowClass: window.Window | undefined = undefined;
-    windowStage.getMainWindow((err: BusinessError, data) => {
+    windowStage.getMainWindow((err: BusinessError, wnd) => {
       const errCode: number = err.code;
       if (errCode) {
         hilog.error(0x0000, "siyuan", err.message);
         return;
       }
 
-      windowClass = data;
       try {
-        if (Utils.isTablet() || Utils.isPC()) {
-          windowClass.setWindowLayoutFullScreen(true);
-          windowClass.setSpecificSystemBarEnabled('status', false);
-          windowClass.setSpecificSystemBarEnabled('navigationIndicator', false);
-        }
-      } catch (exception) {
-        hilog.error(0x0000, "siyuan",
-          `Failed to set the system bar to be invisible. Cause code: ${exception.code}, message: ${exception.message}`);
+        wnd.setWindowLayoutFullScreen(true);
+        wnd.setSpecificSystemBarEnabled('status', false);
+        wnd.setSpecificSystemBarEnabled('navigationIndicator', false);
+      } catch (e) {
+        hilog.error(0x0000, "siyuan", "Set main window system bar failed: " + e);
       }
     });
 
@@ -74,16 +69,16 @@ export default class EntryAbility extends UIAbility {
 
   onWindowStageDestroy(): void {
     // Main window is destroyed, release UI related resources
-    hilog.info(0x0000, "siyuan", '%{public}s', 'Ability onWindowStageDestroy');
+    hilog.info(0x0000, "siyuan", 'Ability onWindowStageDestroy');
   }
 
   onForeground(): void {
     // Ability has brought to foreground
-    hilog.info(0x0000, "siyuan", '%{public}s', 'Ability onForeground');
+    hilog.info(0x0000, "siyuan", 'Ability onForeground');
   }
 
   onBackground(): void {
     // Ability has back to background
-    hilog.info(0x0000, "siyuan", '%{public}s', 'Ability onBackground');
+    hilog.info(0x0000, "siyuan", 'Ability onBackground');
   }
 };
