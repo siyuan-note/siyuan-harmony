@@ -29,7 +29,7 @@ import { Utils } from './Utils';
  * 主程序。
  *
  * @author <a href="https://88250.b3log.org">Liang Ding</a>
- * @version 1.0.2.4, Nov 1, 2025
+ * @version 1.0.2.5, Nov 4, 2025
  * @since 3.1.14
  */
 @Entry
@@ -83,29 +83,24 @@ struct Main {
             napi.disableFeature("ai");
             this.startKernel(appDir, workspaceBaseDir);
           })
-          .onLoadIntercept((event) => {
-            return false;
-          })
-          .onInterceptRequest((event) => {
-            if (!event) {
-              return null;
-            }
+          .onOverrideUrlLoading((webResourceRequest) => {
+            const url = webResourceRequest.getRequestUrl().toLowerCase();
 
-            const url = event.request.getRequestUrl();
             if (-1 < url.indexOf("127.0.0.1")) {
-              return null;
+              this.controller.loadUrl(url);
+              return true;
             }
 
             if (-1 < url.indexOf("siyuan://api/system/exit")) {
               this.exit();
-              return new WebResourceResponse();
+              return true;
             }
 
-            if (url.toLowerCase().startsWith("http")) {
+            if (webResourceRequest.isMainFrame() && url.startsWith("http")) {
               Utils.openByDefaultBrowser(url);
-              return new WebResourceResponse();
+              return true;
             }
-            return null;
+            return false;
           });
       }
       .width("100%")
