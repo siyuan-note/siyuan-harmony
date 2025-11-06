@@ -29,7 +29,7 @@ import { Utils } from './Utils';
  * 主程序。
  *
  * @author <a href="https://88250.b3log.org">Liang Ding</a>
- * @version 1.0.2.5, Nov 4, 2025
+ * @version 1.0.3.0, Nov 6, 2025
  * @since 3.1.14
  */
 @Entry
@@ -109,6 +109,7 @@ struct Main {
         const context = this.getUIContext();
         const uiAbilityContext = context.getHostContext() as common.UIAbilityContext;
         const wnd = uiAbilityContext.windowStage.getMainWindowSync();
+        wnd.setWindowLayoutFullScreen(false);
         wnd.setSpecificSystemBarEnabled('status', true);
         wnd.setSpecificSystemBarEnabled('navigationIndicator', true);
       } catch (e) {
