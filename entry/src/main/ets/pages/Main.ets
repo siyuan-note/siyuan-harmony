@@ -76,7 +76,6 @@ struct Main {
           );
           hilog.info(0x0000, "siyuan",
             "appDir [" + appDir + "], workspaceBaseDir [" + workspaceBaseDir + "], ua [" + ua + "]");
-          napi.disableFeature("ai");
           this.startKernel(appDir, workspaceBaseDir);
         })
         .onOverrideUrlLoading((webResourceRequest) => {
@@ -145,6 +144,7 @@ struct Main {
         backgroundTaskManager.BackgroundMode.DATA_TRANSFER, wantAgentObj).then(() => {
         const localIPs = Utils.getIPAddressList();
         const osVer: string = deviceInfo.osFullName.replace("OpenHarmony-", "");
+        napi.disableFeature("ai");
         napi.startKernel(appDir, workspaceBaseDir, localIPs, osVer);
         this.waitFotKernelHttpServing();
         this.controller.loadUrl("http://127.0.0.1:6806/appearance/boot/index.html");
