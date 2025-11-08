@@ -2,7 +2,7 @@
   "app": {
     "bundleName": "org.b3log.siyuan.ho",
     "vendor": "云南链滴科技有限公司",
-    "versionCode": 1000042,
+    "versionCode": 1000043,
     "versionName": "3.3.6",
     "icon": "$media:app_icon",
     "label": "$string:app_name"
