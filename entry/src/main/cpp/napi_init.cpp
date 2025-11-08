@@ -151,7 +151,7 @@ static napi_value Init(napi_env env, napi_value exports) {
 }
 EXTERN_C_END
 
-static napi_module demoModule = {
+static napi_module kernelModule = {
     .nm_version = 1,
     .nm_flags = 0,
     .nm_filename = nullptr,
@@ -161,4 +161,4 @@ static napi_module demoModule = {
     .reserved = {0},
 };
 
-extern "C" __attribute__((constructor)) void RegisterEntryModule(void) { napi_module_register(&demoModule); }
+extern "C" __attribute__((constructor)) void RegisterEntryModule(void) { napi_module_register(&kernelModule); }
