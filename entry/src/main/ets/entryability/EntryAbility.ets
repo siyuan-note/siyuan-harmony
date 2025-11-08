@@ -31,7 +31,7 @@ import { BusinessError } from '@kit.BasicServicesKit';
  */
 export default class EntryAbility extends UIAbility {
   onCreate(want: Want, launchParam: AbilityConstant.LaunchParam): void {
-    hilog.info(0x0000, "siyuan", 'Ability onCreate');
+    hilog.info(0x0000, "siyuan", 'Ability onCreate [launchParam=' + JSON.stringify(launchParam) + "]");
   }
 
   onDestroy(): void {
