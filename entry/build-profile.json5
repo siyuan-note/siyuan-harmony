@@ -29,7 +29,7 @@
           "exclude": []
         },
         "filter": {
-          "excludes": ["\*\*/x86_64/\*.so"]
+          "excludes": ["**/x86_64/*.so"]
         }
       }
     },
