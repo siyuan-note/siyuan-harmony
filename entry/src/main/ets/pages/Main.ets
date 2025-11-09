@@ -153,15 +153,14 @@ struct Main {
         hilog.info(0x0000, "siyuan",
           "started kernel [appDir=" + appDir + ", workspaceBaseDir=" + workspaceBaseDir + ", localIPs=" + localIPs +
             ", osVer=" + osVer + "]");
+        this.waitFotKernelHttpServing();
+        this.controller.loadUrl("http://127.0.0.1:6806/appearance/boot/index.html");
+        hilog.info(0x0000, "siyuan", "load boot page");
       }).catch((err: BusinessError) => {
         hilog.error(0x0000, "siyuan", "start kernel in background failed: " + err)
         this.exit();
       });
     });
-
-    this.waitFotKernelHttpServing();
-    this.controller.loadUrl("http://127.0.0.1:6806/appearance/boot/index.html");
-    hilog.info(0x0000, "siyuan", "load boot page");
   }
 
   async waitFotKernelHttpServing() {
