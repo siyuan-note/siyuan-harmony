@@ -27,7 +27,7 @@ static char *value2String(napi_env env, napi_value value) {
     napi_get_value_string_utf8(env, value, nullptr, 0, &len);
     char *buf = new char[len + 1];
     napi_get_value_string_utf8(env, value, buf, len + 1, &len);
-    
+
     return buf;
 }
 
@@ -63,13 +63,13 @@ static napi_value IsHttpServing0(napi_env env, napi_callback_info info) {
 
     GoUint8 ret = future.get();
     napi_create_uint32(env, ret, &result);
-    
+
     return result;
 }
 
 static napi_value DisableFeature0(napi_env env, napi_callback_info info) {
-     napi_value result;
-    
+    napi_value result;
+
     size_t argc = 1;
     napi_value args[1] = {nullptr};
     napi_get_cb_info(env, info, &argc, args, nullptr, nullptr);
@@ -114,7 +114,7 @@ static napi_value GetAssetAbsPath0(napi_env env, napi_callback_info info) {
 
     char *absPath = future.get();
     napi_create_string_utf8(env, absPath, strlen(absPath), &result);
-    
+
     return result;
 }
 
@@ -131,7 +131,7 @@ static napi_value GetCurrentWorkspacePath0(napi_env env, napi_callback_info info
 
     char *workspace = future.get();
     napi_create_string_utf8(env, workspace, strlen(workspace), &result);
-    
+
     return result;
 }
 
