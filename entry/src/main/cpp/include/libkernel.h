@@ -12,6 +12,8 @@
 
 #ifndef GO_CGO_GOSTRING_TYPEDEF
 typedef struct { const char *p; ptrdiff_t n; } _GoString_;
+extern size_t _GoStringLen(_GoString_ s);
+extern const char *_GoStringPtr(_GoString_ s);
 #endif
 
 #endif
@@ -44,9 +46,15 @@ typedef size_t GoUintptr;
 typedef float GoFloat32;
 typedef double GoFloat64;
 #ifdef _MSC_VER
+#if !defined(__cplusplus) || _MSVC_LANG <= 201402L
 #include <complex.h>
 typedef _Fcomplex GoComplex64;
 typedef _Dcomplex GoComplex128;
+#else
+#include <complex>
+typedef std::complex<float> GoComplex64;
+typedef std::complex<double> GoComplex128;
+#endif
 #else
 typedef float _Complex GoComplex64;
 typedef double _Complex GoComplex128;
@@ -78,9 +86,9 @@ extern void StartKernelFast(char* container, char* appDir, char* workspaceBaseDi
 extern void StartKernel(char* container, char* appDir, char* workspaceBaseDir, char* timezoneID, char* localIPs, char* lang, char* osVer);
 extern GoString Language(GoInt num);
 extern void ShowMsg(GoString msg, GoInt timeout);
-extern GoUint8 IsHttpServing();
+extern GoUint8 IsHttpServing(void);
 extern void SetHttpServerPort(GoInt port);
-extern char* GetCurrentWorkspacePath();
+extern char* GetCurrentWorkspacePath(void);
 extern char* GetAssetAbsPath(char* relativePath);
 extern GoString GetMimeTypeByExt(GoString ext);
 extern void SetTimezone(GoString container, GoString appDir, GoString timezoneID);
