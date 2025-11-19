@@ -30,13 +30,17 @@ import { connection } from '@kit.NetworkKit';
  * 工具类。
  *
  * @author <a href="https://88250.b3log.org">Liang Ding</a>
- * @version 1.2.0.0, Oct 26, 2025
+ * @version 1.2.0.1, Nov 19, 2025
  * @since 3.1.14
  */
 @Component
 export struct Utils {
   public static appVer =
     bundleManager.getBundleInfoForSelfSync(bundleManager.BundleFlag.GET_BUNDLE_INFO_WITH_APPLICATION).versionName;
+  public static appVerCode =
+    bundleManager.getBundleInfoForSelfSync(bundleManager.BundleFlag.GET_BUNDLE_INFO_WITH_APPLICATION)
+      .versionCode
+      .toString();
   public static bundleName =
     bundleManager.getBundleInfoForSelfSync(bundleManager.BundleFlag.GET_BUNDLE_INFO_WITH_APPLICATION).name;
 
@@ -79,7 +83,7 @@ export struct Utils {
 
   static async initAppearance(ability: UIAbility) {
     if (!Utils.needUnzipAssets(ability)) {
-      hilog.debug(0x0000, "siyuan", "Do not need unzip appearance [" + Utils.appVer + "]");
+      hilog.debug(0x0000, "siyuan", "Do not need unzip appearance [" + Utils.appVerCode + "]");
       return;
     }
 
@@ -90,11 +94,11 @@ export struct Utils {
     }
     await Utils.unzipAsset(ability);
     const f = fs.openSync(appDir + "/VERSION", fs.OpenMode.CREATE | fs.OpenMode.READ_WRITE);
-    fs.writeSync(f.fd, Utils.appVer);
+    fs.writeSync(f.fd, Utils.appVerCode);
   }
 
   static async unzipAsset(ability: UIAbility): Promise<void> {
-    hilog.debug(0x0000, "siyuan", "Unzipping appearance [" + Utils.appVer + "]");
+    hilog.debug(0x0000, "siyuan", "Unzipping appearance [" + Utils.appVerCode + "]");
     const appZipData = ability.context.resourceManager.getRawFileContentSync("app.zip").buffer;
     const appZip = ability.context.tempDir + "/app.zip";
     const appZipFile = fs.openSync(appZip, fs.OpenMode.CREATE | fs.OpenMode.READ_WRITE);
@@ -103,7 +107,7 @@ export struct Utils {
     const appDir = ability.context.filesDir + "/app/";
     fs.mkdirSync(appDir);
     napi.unzip(appZip, appDir);
-    hilog.info(0x0000, "siyuan", "Unzipped appearance [" + Utils.appVer + "]");
+    hilog.info(0x0000, "siyuan", "Unzipped appearance [" + Utils.appVerCode + "]");
   }
 
   static needUnzipAssets(ability: UIAbility): boolean {
@@ -111,7 +115,7 @@ export struct Utils {
     if (!fs.accessSync(verFilePath)) {
       return true
     }
-    return fs.readTextSync(verFilePath) != Utils.appVer;
+    return fs.readTextSync(verFilePath) != Utils.appVerCode;
   }
 
   static isTablet(): boolean {
