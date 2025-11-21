@@ -24,7 +24,7 @@ import { BusinessError, print } from '@kit.BasicServicesKit';
  * 打印。
  *
  * @author <a href="https://88250.b3log.org">Liang Ding</a>
- * @version 1.0.0.0, Dec 20, 2024
+ * @version 1.0.0.1, Nov 21, 2025
  * @since 3.3.6
  */
 @Entry
