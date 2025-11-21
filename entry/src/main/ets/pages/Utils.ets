@@ -44,10 +44,10 @@ export struct Utils {
   public static bundleName =
     bundleManager.getBundleInfoForSelfSync(bundleManager.BundleFlag.GET_BUNDLE_INFO_WITH_APPLICATION).name;
 
-  static async print(html: string, filename: string) {
+  static async print(filename: string, html: string) {
     const param = new PrintParam();
-    param.html = html;
     param.filename = filename;
+    param.html = html;
     router.pushUrl({
       url: "pages/Print",
       params: param,
