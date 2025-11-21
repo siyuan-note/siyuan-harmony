@@ -21,7 +21,7 @@ import common from '@ohos.app.ability.common';
 import window from '@ohos.window';
 import hilog from '@ohos.hilog';
 import { BusinessError } from '@ohos.base';
-import { pasteboard, systemDateTime } from '@kit.BasicServicesKit';
+import { pasteboard } from '@kit.BasicServicesKit';
 import napi from 'libentry.so';
 import { Want, wantConstant } from '@kit.AbilityKit';
 import { fileUri, fileIo as fs } from '@kit.CoreFileKit';
@@ -101,8 +101,8 @@ export class JSHarmony {
     Utils.openByDefaultBrowser(url);
   }
 
-  async print(html: string) {
-    const filename = systemDateTime.getTime() + ".pdf";
+  async print(title: string, html: string) {
+    const filename = title + ".pdf";
     try {
       await Utils.print(html, filename)
     } catch (e) {
