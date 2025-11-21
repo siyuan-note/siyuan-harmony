@@ -49,7 +49,7 @@ struct Print {
           try {
             this.controller.loadData(params.html, "text/html", "UTF-8", "http://127.0.0.1:6806/")
             let webPrintDocadapter = this.controller.createWebPrintDocumentAdapter(params.filename);
-            print.print("Print doc", webPrintDocadapter, null, getContext()).then((task: print.PrintTask) => {
+            print.print(params.filename, webPrintDocadapter, null, getContext()).then((task: print.PrintTask) => {
               task.on("cancel", this.returnToMain);
               task.on("succeed", this.returnToMain);
               task.on("fail", this.returnToMain);
