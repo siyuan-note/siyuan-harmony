@@ -16,9 +16,9 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import router from '@ohos.router';
 import { webview } from '@kit.ArkWeb';
-import { BusinessError, print } from '@kit.BasicServicesKit';
+import { print } from '@kit.BasicServicesKit';
+import hilog from '@ohos.hilog';
 
 /**
  * 打印。
@@ -46,24 +46,26 @@ struct Print {
         .textZoomRatio(100)
         .onControllerAttached(() => {
           const params = this.getUIContext().getRouter().getParams() as PrintParam;
+          this.controller.loadData(params.html, "text/html", "UTF-8", "http://127.0.0.1:6806/")
+        })
+        .onPageEnd(() => {
           try {
-            this.controller.loadData(params.html, "text/html", "UTF-8", "http://127.0.0.1:6806/")
+            const params = this.getUIContext().getRouter().getParams() as PrintParam;
             let webPrintDocadapter = this.controller.createWebPrintDocumentAdapter(params.filename);
             print.print(params.filename, webPrintDocadapter, null, getContext()).then((task: print.PrintTask) => {
-              task.on("cancel", this.returnToMain);
               task.on("succeed", this.returnToMain);
               task.on("fail", this.returnToMain);
               task.on("cancel", this.returnToMain);
             });
           } catch (error) {
-            console.error(`ErrorCode: ${(error as BusinessError).code},  Message: ${(error as BusinessError).message}`);
+            hilog.error(0x0000, "siyuan", `ErrorCode: ${error.code},  Message: ${error.message}`);
           }
         })
     }
   }
 
   returnToMain() {
-    router.pushUrl({
+    this.getUIContext().getRouter().back({
       url: "pages/Main"
     });
   }

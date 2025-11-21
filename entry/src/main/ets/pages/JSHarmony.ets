@@ -104,7 +104,7 @@ export class JSHarmony {
   async print(title: string, html: string) {
     const filename = title + ".pdf";
     try {
-      await Utils.print(filename, html)
+      await Utils.print(filename, html);
     } catch (e) {
       hilog.error(0x0000, "siyuan", "print failed: " + e);
     }
