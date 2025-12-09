@@ -72,6 +72,7 @@ struct Main {
               "writeClipboard",
               "writeHTMLClipboard",
               "returnDesktop",
+              "exit",
             ]
           );
           hilog.info(0x0000, "siyuan",
@@ -83,11 +84,6 @@ struct Main {
 
           if (-1 < url.indexOf("127.0.0.1")) {
             this.controller.loadUrl(url);
-            return true;
-          }
-
-          if (-1 < url.indexOf("siyuan://api/system/exit")) {
-            this.exit();
             return true;
           }
 
@@ -115,13 +111,6 @@ struct Main {
         hilog.error(0x0000, "siyuan", "Set main window system bar failed: " + e);
       }
     }
-  }
-
-  private exit() {
-    const context = this.getUIContext();
-    const uiAbilityContext = context.getHostContext() as common.UIAbilityContext;
-    uiAbilityContext.terminateSelf();
-    backgroundTaskManager.stopBackgroundRunning(uiAbilityContext);
   }
 
   private startKernel(appDir: string, workspaceBaseDir: string) {
@@ -158,7 +147,7 @@ struct Main {
         hilog.info(0x0000, "siyuan", "load boot page");
       }).catch((err: BusinessError) => {
         hilog.error(0x0000, "siyuan", "start kernel in background failed: " + err)
-        this.exit();
+        Utils.exit();
       });
     });
   }

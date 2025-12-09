@@ -21,6 +21,7 @@ import { bundleManager, common, UIAbility, Want } from '@kit.AbilityKit';
 import { hilog } from '@kit.PerformanceAnalysisKit';
 import napi from 'libentry.so';
 import { deviceInfo } from '@kit.BasicServicesKit';
+import { backgroundTaskManager } from '@kit.BackgroundTasksKit';
 import router from '@ohos.router';
 import "./Print";
 import { PrintParam } from './Print';
@@ -30,7 +31,7 @@ import { connection } from '@kit.NetworkKit';
  * 工具类。
  *
  * @author <a href="https://88250.b3log.org">Liang Ding</a>
- * @version 1.2.0.1, Nov 19, 2025
+ * @version 1.2.0.2, Dec 9, 2025
  * @since 3.1.14
  */
 @Component
@@ -39,10 +40,15 @@ export struct Utils {
     bundleManager.getBundleInfoForSelfSync(bundleManager.BundleFlag.GET_BUNDLE_INFO_WITH_APPLICATION).versionName;
   public static appVerCode =
     bundleManager.getBundleInfoForSelfSync(bundleManager.BundleFlag.GET_BUNDLE_INFO_WITH_APPLICATION)
-      .versionCode
-      .toString();
+      .versionCode.toString();
   public static bundleName =
     bundleManager.getBundleInfoForSelfSync(bundleManager.BundleFlag.GET_BUNDLE_INFO_WITH_APPLICATION).name;
+
+  static exit() {
+    const context = getContext() as common.UIAbilityContext;
+    context.terminateSelf();
+    backgroundTaskManager.stopBackgroundRunning(context);
+  }
 
   static async print(filename: string, html: string) {
     const param = new PrintParam();

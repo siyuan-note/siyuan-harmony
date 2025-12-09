@@ -30,10 +30,14 @@ import { fileUri, fileIo as fs } from '@kit.CoreFileKit';
  * JavaScript 接口。
  *
  * @author <a href="https://88250.b3log.org">Liang Ding</a>
- * @version 1.2.1.2, Nov 4, 2025
+ * @version 1.2.1.3, Dec 9, 2025
  * @since 3.1.14
  */
 export class JSHarmony {
+  exit() {
+    Utils.exit();
+  }
+
   returnDesktop() {
     const context = getContext() as common.UIAbilityContext;
     context.moveAbilityToBackground();
