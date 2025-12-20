@@ -135,6 +135,15 @@ static napi_value GetCurrentWorkspacePath0(napi_env env, napi_callback_info info
     return result;
 }
 
+static napi_value Exit0(napi_env env, napi_callback_info info) {
+    napi_value result;
+
+    std::thread t([]() { Exit(); });
+    t.join();
+
+    return result;
+}
+
 EXTERN_C_START
 static napi_value Init(napi_env env, napi_value exports) {
     napi_property_descriptor desc[] = {
@@ -145,6 +154,7 @@ static napi_value Init(napi_env env, napi_value exports) {
         {"getAssetAbsPath", nullptr, GetAssetAbsPath0, nullptr, nullptr, nullptr, napi_default, nullptr},
         {"getCurrentWorkspacePath", nullptr, GetCurrentWorkspacePath0, nullptr, nullptr, nullptr, napi_default,
          nullptr},
+        {"exit", nullptr, Exit0, nullptr, nullptr, nullptr, napi_default, nullptr},
     };
     napi_define_properties(env, exports, sizeof(desc) / sizeof(desc[0]), desc);
     return exports;

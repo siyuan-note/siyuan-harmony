@@ -31,7 +31,7 @@ import { connection } from '@kit.NetworkKit';
  * 工具类。
  *
  * @author <a href="https://88250.b3log.org">Liang Ding</a>
- * @version 1.2.0.2, Dec 9, 2025
+ * @version 1.2.1.0, Dec 20, 2025
  * @since 3.1.14
  */
 @Component
@@ -48,6 +48,12 @@ export struct Utils {
     const context = getContext() as common.UIAbilityContext;
     context.terminateSelf();
     backgroundTaskManager.stopBackgroundRunning(context);
+
+    try {
+      napi.exit();
+    } catch (err) {
+      hilog.error(0x0000, "siyuan", "exit kernel failed: " + err);
+    }
   }
 
   static async print(filename: string, html: string) {

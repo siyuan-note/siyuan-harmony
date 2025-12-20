@@ -94,6 +94,7 @@ extern GoString GetMimeTypeByExt(GoString ext);
 extern void SetTimezone(GoString container, GoString appDir, GoString timezoneID);
 extern void DisableFeature(char* feature);
 extern void Unzip(char* zipFilePath, char* destination);
+extern void Exit(void);
 
 #ifdef __cplusplus
 }
