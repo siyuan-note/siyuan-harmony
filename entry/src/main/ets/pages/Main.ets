@@ -29,7 +29,7 @@ import { Utils } from './Utils';
  * 主程序。
  *
  * @author <a href="https://88250.b3log.org">Liang Ding</a>
- * @version 1.0.3.0, Nov 6, 2025
+ * @version 1.0.3.1, Dec 24, 2025
  * @since 3.1.14
  */
 @Entry
@@ -93,9 +93,9 @@ struct Main {
           }
           return false;
         })
-        .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.BOTTOM])
     }
-    .width("100%");
+    .width("100%")
+    .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.BOTTOM]);
   }
 
   aboutToAppear(): void {
