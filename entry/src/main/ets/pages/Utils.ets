@@ -31,7 +31,7 @@ import { connection } from '@kit.NetworkKit';
  * 工具类。
  *
  * @author <a href="https://88250.b3log.org">Liang Ding</a>
- * @version 1.2.1.0, Dec 20, 2025
+ * @version 1.2.2.0, Dec 27, 2025
  * @since 3.1.14
  */
 @Component
@@ -139,27 +139,33 @@ export struct Utils {
   }
 
   static getIPAddressList(): string {
-    let net = connection.getDefaultNetSync();
-    if (!net) {
-      hilog.warn(0x0000, "siyuan", "Get network failed");
-      return "127.0.0.1";
-    }
-
-    let props = connection.getConnectionPropertiesSync(net);
-    if (!props) {
-      hilog.warn(0x0000, "siyuan", "Get network properties failed");
-      return "127.0.0.1";
-    }
-
-    let ips: string[] = [];
-    for (let i = 0; i < props.linkAddresses.length; i++) {
-      const linkAddress = props.linkAddresses[i];
-      if (linkAddress.address && 1 === linkAddress.address.family && "127.0.0.1" != linkAddress.address.address) {
-        ips.push(linkAddress.address.address);
+    try {
+      let net = connection.getDefaultNetSync();
+      if (!net) {
+        hilog.warn(0x0000, "siyuan", "Get network failed");
+        return "127.0.0.1";
       }
+
+      let props = connection.getConnectionPropertiesSync(net);
+      if (!props) {
+        hilog.warn(0x0000, "siyuan", "Get network properties failed");
+        return "127.0.0.1";
+      }
+
+      let ips: string[] = [];
+      for (let i = 0; i < props.linkAddresses.length; i++) {
+        const linkAddress = props.linkAddresses[i];
+        if (linkAddress.address && 1 === linkAddress.address.family && "127.0.0.1" != linkAddress.address.address) {
+          ips.push(linkAddress.address.address);
+        }
+      }
+
+      ips.push("127.0.0.1");
+      return ips.join(",");
+    } catch (e) {
+      hilog.warn(0x0000, "siyuan", "get IP address list failed: " + e)
+      return "127.0.0.1";
     }
-    ips.push("127.0.0.1");
-    return ips.join(",");
   }
 
   build() {
