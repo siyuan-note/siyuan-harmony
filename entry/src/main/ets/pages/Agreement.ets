@@ -16,8 +16,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import router from '@ohos.router';
 import PrivacyPolicyDialog from './PrivacyPolicyDialog';
+import { Utils } from './Utils';
 
 /**
  * 引导启动。
@@ -45,19 +45,19 @@ struct Agreement {
       })
 
       PrivacyPolicyDialog({
-        cancel: this.onCancel.bind(this),
-        confirm: this.onAgree.bind(this),
+        cancel: this.onCancel,
+        confirm: this.onAgree,
       })
     }.width('100%')
     .height('100%').backgroundColor($r('app.color.white'))
   }
 
   onCancel(): void {
-    getContext(this).getApplicationContext().clearUpApplicationData();
+    Utils.getContext().getApplicationContext().clearUpApplicationData();
   }
 
   onAgree(): void {
-    router.pushUrl({
+    this.getUIContext().getRouter().pushUrl({
       url: "pages/Main"
     });
   }

@@ -32,6 +32,7 @@ import { BusinessError } from '@kit.BasicServicesKit';
 export default class EntryAbility extends UIAbility {
   onCreate(want: Want, launchParam: AbilityConstant.LaunchParam): void {
     hilog.info(0x0000, "siyuan", 'Ability onCreate [launchParam=' + JSON.stringify(launchParam) + "]");
+    AppStorage.setOrCreate('abilityContext', this.context);
   }
 
   onDestroy(): void {
@@ -54,6 +55,12 @@ export default class EntryAbility extends UIAbility {
         wnd.setSpecificSystemBarEnabled('navigationIndicator', false);
       } catch (e) {
         hilog.error(0x0000, "siyuan", "Set main window system bar failed: " + e);
+      }
+
+      try {
+        Utils.setUIContext(wnd.getUIContext());
+      } catch (e) {
+        hilog.error(0x0000, "siyuan", "Set ui context failed: " + e);
       }
     });
 

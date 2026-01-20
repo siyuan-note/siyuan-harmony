@@ -39,7 +39,7 @@ export class JSHarmony {
   }
 
   returnDesktop() {
-    const context = getContext() as common.UIAbilityContext;
+    const context = Utils.getContext();
     context.moveAbilityToBackground();
   }
 
@@ -115,7 +115,7 @@ export class JSHarmony {
   }
 
   async getScreenWidthPx(): Promise<number> {
-    const context = getContext() as common.UIAbilityContext;
+    const context = Utils.getContext();
     const win = await window.getLastWindow(context);
     return win.getWindowProperties().windowRect.width;
   }
@@ -135,7 +135,7 @@ export class JSHarmony {
     }
 
     let uri = fileUri.getUriFromPath(assetAbsPath);
-    const context = getContext() as common.UIAbilityContext;
+    const context = Utils.getContext();
     const wantInfo: Want = {
       action: 'ohos.want.action.viewData',
       entities: ['entity.system.browsable'],
@@ -151,7 +151,7 @@ export class JSHarmony {
       return;
     }
 
-    const context = getContext() as common.UIAbilityContext;
+    const context = Utils.getContext();
     window.getLastWindow(context).then((wnd: window.Window) => {
       try {
         const parsedColor = this.parseColor(color);
@@ -184,7 +184,7 @@ export class JSHarmony {
       }
       if (color.length < 7) {
         // Convert 3-digit hex colors to 6-digit
-        color = color.replace(/#([0-9a-fA-F])([0-9a-fA-F])([0-9a-fA-F])/, "#$1$1$2$2$3$3");
+        color = color.replace(new RegExp("#([0-9a-fA-F])([0-9a-fA-F])([0-9a-fA-F])"), "#$1$1$2$2$3$3");
       }
       if (color.length === 9 && color.charAt(0) === '#') {
         // Convert #RRGGBBAA to #AARRGGBB

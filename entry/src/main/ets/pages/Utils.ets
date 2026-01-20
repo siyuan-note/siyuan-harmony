@@ -22,8 +22,6 @@ import { hilog } from '@kit.PerformanceAnalysisKit';
 import napi from 'libentry.so';
 import { deviceInfo } from '@kit.BasicServicesKit';
 import { backgroundTaskManager } from '@kit.BackgroundTasksKit';
-import router from '@ohos.router';
-import "./Print";
 import { PrintParam } from './Print';
 import { connection } from '@kit.NetworkKit';
 
@@ -45,7 +43,7 @@ export struct Utils {
     bundleManager.getBundleInfoForSelfSync(bundleManager.BundleFlag.GET_BUNDLE_INFO_WITH_APPLICATION).name;
 
   static exit() {
-    const context = getContext() as common.UIAbilityContext;
+    const context = Utils.getContext()
     context.terminateSelf();
     backgroundTaskManager.stopBackgroundRunning(context);
 
@@ -60,7 +58,7 @@ export struct Utils {
     const param = new PrintParam();
     param.filename = filename;
     param.html = html;
-    router.pushUrl({
+    Utils.getUIContext().getRouter().pushUrl({
       url: "pages/Print",
       params: param,
     });
@@ -84,7 +82,7 @@ export struct Utils {
       url = "http://127.0.0.1:6806" + url;
     }
 
-    const context = getContext() as common.UIAbilityContext;
+    const context = Utils.getContext();
     const wantInfo: Want = {
       action: 'ohos.want.action.viewData',
       entities: ['entity.system.browsable'],
@@ -166,6 +164,24 @@ export struct Utils {
       hilog.warn(0x0000, "siyuan", "get IP address list failed: " + e)
       return "127.0.0.1";
     }
+  }
+
+  static getContext(): common.UIAbilityContext {
+    const context = AppStorage.get<common.UIAbilityContext>('abilityContext');
+    if (!context) {
+      throw new Error("Failed to get the abilityContext")
+    }
+    return context;
+  }
+
+  private static uiContext: UIContext;
+
+  static setUIContext(uiContext: UIContext) {
+    Utils.uiContext = uiContext;
+  }
+
+  static getUIContext(): UIContext {
+    return Utils.uiContext;
   }
 
   build() {

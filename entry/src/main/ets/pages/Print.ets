@@ -52,11 +52,14 @@ struct Print {
           try {
             const params = this.getUIContext().getRouter().getParams() as PrintParam;
             let webPrintDocadapter = this.controller.createWebPrintDocumentAdapter(params.filename);
-            print.print(params.filename, webPrintDocadapter, null, getContext()).then((task: print.PrintTask) => {
-              task.on("succeed", this.returnToMain);
-              task.on("fail", this.returnToMain);
-              task.on("cancel", this.returnToMain);
-            });
+            print.print(params.filename, webPrintDocadapter, null, this.getUIContext().getHostContext())
+              .then((task: print.PrintTask) => {
+                task.on("succeed", this.returnToMain);
+                task.on("fail", this.returnToMain);
+                task.on("cancel", this.returnToMain);
+              }).catch((err: Error) => {
+              hilog.error(0x0000, "siyuan", `Message: ${err.message}`);
+            })
           } catch (error) {
             hilog.error(0x0000, "siyuan", `ErrorCode: ${error.code},  Message: ${error.message}`);
           }

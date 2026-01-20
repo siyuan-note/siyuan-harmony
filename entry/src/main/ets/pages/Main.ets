@@ -52,7 +52,7 @@ struct Main {
         .zoomAccess(false)
         .textZoomRatio(100)
         .onControllerAttached(() => {
-          const context = getContext();
+          const context = Utils.getContext();
           const filesDir = context.filesDir;
           const appDir = filesDir;
           const workspaceBaseDir = filesDir + "/workspaces"
