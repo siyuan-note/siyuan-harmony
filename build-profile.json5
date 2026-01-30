@@ -26,9 +26,10 @@
             "useNormalizedOHMUrl": true
           }
         },
-        "targetSdkVersion": "6.0.1(21)",
-        "compatibleSdkVersion": "6.0.1(21)",
-        "arkTSVersion": "1.0"
+        "arkTSVersion": "1.0",
+        "compileSdkVersion": "6.0.2(22)",
+        "targetSdkVersion": "6.0.0(20)",
+        "compatibleSdkVersion": "5.0.1(13)"
       }
     ],
     "buildModeSet": [
