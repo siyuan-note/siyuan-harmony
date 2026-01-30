@@ -82,7 +82,7 @@ struct Main {
         .onOverrideUrlLoading((webResourceRequest) => {
           const url = webResourceRequest.getRequestUrl().toLowerCase();
 
-          if (-1 < url.indexOf("127.0.0.1")) {
+          if (-1 < url.indexOf("127.0.0.1") && 0 > url.indexOf("openExternal")) {
             this.controller.loadUrl(url);
             return true;
           }
