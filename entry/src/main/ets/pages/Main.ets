@@ -140,7 +140,7 @@ struct Main {
     window.getLastWindow(this.getUIContext().getHostContext()).then(currentWindow => {
       currentWindow.on('keyboardHeightChange', (height) => {
         if (height > 0) {
-          this.controller.runJavaScript("javascript:showKeyboardToolbar(" + height + ")");
+          this.controller.runJavaScript("javascript:showKeyboardToolbar()");
           this.isFocusable = true;
         } else {
           this.controller.runJavaScript("javascript:hideKeyboardToolbar()")
