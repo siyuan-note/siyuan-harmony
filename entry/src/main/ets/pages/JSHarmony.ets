@@ -17,11 +17,10 @@
  */
 
 import { Utils } from './Utils';
-import common from '@ohos.app.ability.common';
 import window from '@ohos.window';
 import hilog from '@ohos.hilog';
 import { BusinessError } from '@ohos.base';
-import { pasteboard } from '@kit.BasicServicesKit';
+import { emitter, pasteboard } from '@kit.BasicServicesKit';
 import napi from 'libentry.so';
 import { Want, wantConstant } from '@kit.AbilityKit';
 import { fileUri, fileIo as fs } from '@kit.CoreFileKit';
@@ -30,10 +29,19 @@ import { fileUri, fileIo as fs } from '@kit.CoreFileKit';
  * JavaScript 接口。
  *
  * @author <a href="https://88250.b3log.org">Liang Ding</a>
- * @version 1.2.1.3, Dec 9, 2025
+ * @version 1.3.0.0, Feb 5, 2026
  * @since 3.1.14
  */
-export class JSHarmony {
+@Component
+export struct JSHarmony {
+  showKeyboard() {
+    emitter.emit("isFocusableTrue");
+  }
+
+  hideKeyboard() {
+    emitter.emit("isFocusableFalse");
+  }
+
   exit() {
     Utils.exit();
   }
@@ -195,5 +203,8 @@ export class JSHarmony {
       hilog.error(0x0000, "siyuan", "parse color [" + color + "] failed", e);
       return "#ffffff";
     }
+  }
+
+  build() {
   }
 }

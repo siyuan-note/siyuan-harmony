@@ -18,25 +18,28 @@
 
 import { hilog } from '@kit.PerformanceAnalysisKit';
 import { backgroundTaskManager } from '@kit.BackgroundTasksKit';
-import { BusinessError, deviceInfo } from '@kit.BasicServicesKit';
+import { BusinessError, deviceInfo, emitter } from '@kit.BasicServicesKit';
 import { common, wantAgent, WantAgent } from '@kit.AbilityKit';
 import { webview } from '@kit.ArkWeb';
 import napi from 'libentry.so';
 import { JSHarmony } from './JSHarmony';
 import { Utils } from './Utils';
+import { window } from '@kit.ArkUI';
+import { inputMethod } from '@kit.IMEKit';
 
 /**
  * 主程序。
  *
  * @author <a href="https://88250.b3log.org">Liang Ding</a>
- * @version 1.0.3.1, Dec 24, 2025
+ * @version 1.1.0.0, Feb 5, 2026
  * @since 3.1.14
  */
 @Entry
 @Component
 struct Main {
   controller: webview.WebviewController = new webview.WebviewController();
-  @State jsHarmony: JSHarmony = new JSHarmony();
+  jsHarmony: JSHarmony = new JSHarmony();
+  @State isFocusable: boolean = false;
 
   build() {
     Row() {
@@ -51,6 +54,8 @@ struct Main {
         .mixedMode(MixedMode.All)
         .zoomAccess(false)
         .textZoomRatio(100)
+        .backgroundColor($r('app.color.bgColor'))
+        .focusable(this.isFocusable)
         .onControllerAttached(() => {
           const context = Utils.getContext();
           const filesDir = context.filesDir;
@@ -73,8 +78,24 @@ struct Main {
               "writeHTMLClipboard",
               "returnDesktop",
               "exit",
+              "showKeyboard",
+              "hideKeyboard"
             ]
           );
+
+          emitter.on("isFocusableTrue", () => {
+            this.isFocusable = true
+          });
+
+          emitter.on("isFocusableFalse", () => {
+            this.isFocusable = false;
+            try {
+              inputMethod.getController().stopInputSession();
+            } catch (e) {
+              hilog.error(0x0000, "siyuan", "stop input method session failed: " + e)
+            }
+          });
+
           hilog.info(0x0000, "siyuan",
             "appDir [" + appDir + "], workspaceBaseDir [" + workspaceBaseDir + "], ua [" + ua + "]");
           this.startKernel(appDir, workspaceBaseDir);
@@ -108,9 +129,25 @@ struct Main {
         wnd.setSpecificSystemBarEnabled('status', true);
         wnd.setSpecificSystemBarEnabled('navigationIndicator', true);
       } catch (e) {
-        hilog.error(0x0000, "siyuan", "Set main window system bar failed: " + e);
+        hilog.error(0x0000, "siyuan", "set main window system bar failed: " + e);
       }
     }
+
+    this.listenKeyboard();
+  }
+
+  private listenKeyboard() {
+    window.getLastWindow(this.getUIContext().getHostContext()).then(currentWindow => {
+      currentWindow.on('keyboardHeightChange', (height) => {
+        if (height > 0) {
+          this.controller.runJavaScript("javascript:showKeyboardToolbar(" + height + ")");
+          this.isFocusable = true;
+        } else {
+          this.controller.runJavaScript("javascript:hideKeyboardToolbar()")
+          this.isFocusable = false;
+        }
+      });
+    });
   }
 
   private startKernel(appDir: string, workspaceBaseDir: string) {
