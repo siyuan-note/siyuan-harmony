@@ -182,6 +182,17 @@ struct Main {
         this.waitFotKernelHttpServing();
         this.controller.loadUrl("http://127.0.0.1:6806/appearance/boot/index.html?v=" + Utils.appVer);
         hilog.info(0x0000, "siyuan", "load boot page");
+
+        const context = this.getUIContext();
+        const uiAbilityContext = context.getHostContext() as common.UIAbilityContext;
+        const wnd = uiAbilityContext.windowStage.getMainWindowSync();
+        wnd.setWindowSystemBarProperties({
+          statusBarColor: "#1e1e1e",
+          statusBarContentColor: "#ffffff",
+          navigationBarColor: "#1e1e1e",
+          navigationBarContentColor: "#ffffff",
+        });
+        wnd.setWindowBackgroundColor("#1e1e1e");
       }).catch((err: BusinessError) => {
         hilog.error(0x0000, "siyuan", "start kernel in background failed: " + err)
         Utils.exit();
