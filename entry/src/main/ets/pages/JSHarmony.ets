@@ -164,7 +164,7 @@ export struct JSHarmony {
       try {
         const parsedColor = this.parseColor(color);
         hilog.info(0x0000, "siyuan",
-          "Change statusbar [color=" + color + ", parsedColor=" + parsedColor + ", appearanceMode=" + appearanceMode +
+          "change system bar [color=" + color + ", parsedColor=" + parsedColor + ", appearanceMode=" + appearanceMode +
             "]");
         wnd.setWindowSystemBarProperties({
           statusBarColor: parsedColor,
@@ -172,7 +172,7 @@ export struct JSHarmony {
           navigationBarColor: parsedColor,
           navigationBarContentColor: 0 !== appearanceMode ? "#ffffff" : "#000000",
         }).catch((e: BusinessError) => {
-          hilog.error(0x0000, "siyuan", "set main window system bar failed: " + e);
+          hilog.error(0x0000, "siyuan", "set system bar failed: " + e);
         })
         wnd.setWindowBackgroundColor(parsedColor);
         wnd.setWindowLayoutFullScreen(false);
@@ -182,7 +182,7 @@ export struct JSHarmony {
           wnd.setSpecificSystemBarEnabled('navigationIndicator', true);
         }, 256);
       } catch (e) {
-        hilog.error(0x0000, "siyuan", JSON.stringify(e))
+        hilog.error(0x0000, "siyuan", "change system bar color failed: " + e);
       }
     });
   }
