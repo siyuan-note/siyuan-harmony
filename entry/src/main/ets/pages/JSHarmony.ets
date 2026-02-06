@@ -171,10 +171,16 @@ export struct JSHarmony {
           statusBarContentColor: 0 !== appearanceMode ? "#ffffff" : "#000000",
           navigationBarColor: parsedColor,
           navigationBarContentColor: 0 !== appearanceMode ? "#ffffff" : "#000000",
-        }).catch((error: BusinessError) => {
-          hilog.error(0x0000, "siyuan", JSON.stringify(error))
+        }).catch((e: BusinessError) => {
+          hilog.error(0x0000, "siyuan", "set main window system bar failed: " + e);
         })
         wnd.setWindowBackgroundColor(parsedColor);
+        wnd.setWindowLayoutFullScreen(false);
+
+        setTimeout(() => {
+          wnd.setSpecificSystemBarEnabled('status', true);
+          wnd.setSpecificSystemBarEnabled('navigationIndicator', true);
+        }, 256);
       } catch (e) {
         hilog.error(0x0000, "siyuan", JSON.stringify(e))
       }

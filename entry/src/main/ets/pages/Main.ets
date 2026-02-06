@@ -120,20 +120,7 @@ struct Main {
   }
 
   aboutToAppear(): void {
-    if (!Utils.isTablet() && !Utils.isPC()) {
-      try {
-        const context = this.getUIContext();
-        const uiAbilityContext = context.getHostContext() as common.UIAbilityContext;
-        const wnd = uiAbilityContext.windowStage.getMainWindowSync();
-        wnd.setWindowLayoutFullScreen(false);
-        wnd.setSpecificSystemBarEnabled('status', true);
-        wnd.setSpecificSystemBarEnabled('navigationIndicator', true);
-      } catch (e) {
-        hilog.error(0x0000, "siyuan", "set main window system bar failed: " + e);
-      }
-    }
 
-    this.listenKeyboard();
   }
 
   private listenKeyboard() {
@@ -183,16 +170,7 @@ struct Main {
         this.controller.loadUrl("http://127.0.0.1:6806/appearance/boot/index.html?v=" + Utils.appVer);
         hilog.info(0x0000, "siyuan", "load boot page");
 
-        const context = this.getUIContext();
-        const uiAbilityContext = context.getHostContext() as common.UIAbilityContext;
-        const wnd = uiAbilityContext.windowStage.getMainWindowSync();
-        wnd.setWindowSystemBarProperties({
-          statusBarColor: "#1e1e1e",
-          statusBarContentColor: "#ffffff",
-          navigationBarColor: "#1e1e1e",
-          navigationBarContentColor: "#ffffff",
-        });
-        wnd.setWindowBackgroundColor("#1e1e1e");
+        this.listenKeyboard();
       }).catch((err: BusinessError) => {
         hilog.error(0x0000, "siyuan", "start kernel in background failed: " + err)
         Utils.exit();
