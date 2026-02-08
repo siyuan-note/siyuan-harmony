@@ -24,12 +24,13 @@ import { emitter, pasteboard } from '@kit.BasicServicesKit';
 import napi from 'libentry.so';
 import { Want, wantConstant } from '@kit.AbilityKit';
 import { fileUri, fileIo as fs } from '@kit.CoreFileKit';
+import { util } from '@kit.ArkTS';
 
 /**
  * JavaScript 接口。
  *
  * @author <a href="https://88250.b3log.org">Liang Ding</a>
- * @version 1.3.0.0, Feb 5, 2026
+ * @version 1.4.0.0, Feb 8, 2026
  * @since 3.1.14
  */
 @Component
@@ -51,10 +52,21 @@ export struct JSHarmony {
     context.moveAbilityToBackground();
   }
 
+  writeSiYuanHTMLClipboard(text: string, html: string, siyuanHTML: string) {
+    try {
+      const systemPasteboard: pasteboard.SystemPasteboard = pasteboard.getSystemPasteboard();
+      const pasteData: pasteboard.PasteData = pasteboard.createData(pasteboard.MIMETYPE_TEXT_HTML, html);
+      pasteData.addRecord("text/siyuan", siyuanHTML);
+      systemPasteboard.setDataSync(pasteData);
+    } catch (e) {
+      hilog.error(0x0000, "siyuan", "Failed to set PasteData. Cause: " + e.message);
+    }
+  }
+
   writeHTMLClipboard(text: string, html: string) {
     try {
-      let pasteData: pasteboard.PasteData = pasteboard.createData(pasteboard.MIMETYPE_TEXT_HTML, html);
-      let systemPasteboard: pasteboard.SystemPasteboard = pasteboard.getSystemPasteboard();
+      const systemPasteboard: pasteboard.SystemPasteboard = pasteboard.getSystemPasteboard();
+      const pasteData: pasteboard.PasteData = pasteboard.createData(pasteboard.MIMETYPE_TEXT_HTML, html);
       systemPasteboard.setDataSync(pasteData);
     } catch (e) {
       hilog.error(0x0000, "siyuan", "Failed to set PasteData. Cause: " + e.message);
@@ -63,8 +75,8 @@ export struct JSHarmony {
 
   writeClipboard(text: string) {
     try {
-      let pasteData: pasteboard.PasteData = pasteboard.createData(pasteboard.MIMETYPE_TEXT_PLAIN, text);
-      let systemPasteboard: pasteboard.SystemPasteboard = pasteboard.getSystemPasteboard();
+      const systemPasteboard: pasteboard.SystemPasteboard = pasteboard.getSystemPasteboard();
+      const pasteData: pasteboard.PasteData = pasteboard.createData(pasteboard.MIMETYPE_TEXT_PLAIN, text);
       systemPasteboard.setDataSync(pasteData);
     } catch (e) {
       hilog.error(0x0000, "siyuan", "Failed to set PasteData. Cause: " + e.message);
@@ -73,8 +85,8 @@ export struct JSHarmony {
 
   readClipboard(): string {
     try {
-      let systemPasteboard: pasteboard.SystemPasteboard = pasteboard.getSystemPasteboard();
-      let result: pasteboard.PasteData = systemPasteboard.getDataSync();
+      const systemPasteboard: pasteboard.SystemPasteboard = pasteboard.getSystemPasteboard();
+      const result: pasteboard.PasteData = systemPasteboard.getDataSync();
       if (!result) {
         return "";
       }
@@ -84,23 +96,38 @@ export struct JSHarmony {
       }
       return ret;
     } catch (e) {
-      hilog.error(0x0000, "siyuan", "Failed to get PasteData. Cause: " + e.message);
+      hilog.error(0x0000, "siyuan", "read clipboard failed: " + e);
       return ""
     }
   }
 
   readHTMLClipboard(): string {
     try {
-      let systemPasteboard: pasteboard.SystemPasteboard = pasteboard.getSystemPasteboard();
-      let result: pasteboard.PasteData = systemPasteboard.getDataSync();
+      const systemPasteboard: pasteboard.SystemPasteboard = pasteboard.getSystemPasteboard();
+      const result: pasteboard.PasteData = systemPasteboard.getDataSync();
       let ret = result.getPrimaryHtml();
       if (!ret) {
         ret = "";
       }
       return ret;
     } catch (e) {
-      hilog.error(0x0000, "siyuan", "Failed to get PasteData. Cause: " + e.message);
+      hilog.error(0x0000, "siyuan", "read HTML clipboard failed: " + e);
       return ""
+    }
+  }
+
+  readSiYuanHTMLClipboard(): string {
+    try {
+      const textPasteData = pasteboard.getSystemPasteboard().getDataSync();
+      for (let i = 0; i < textPasteData.getRecordCount(); i++) {
+        const record = textPasteData.getRecord(i);
+        const textDecoder = util.TextDecoder.create("utf-8");
+        return textDecoder.decodeToString(new Uint8Array((record.data["text/siyuan"])));
+      }
+      return "";
+    } catch (e) {
+      hilog.error(0x0000, "siyuan", "read siyuan HTML clipboard failed: " + e);
+      return "";
     }
   }
 
@@ -142,7 +169,7 @@ export struct JSHarmony {
       return;
     }
 
-    let uri = fileUri.getUriFromPath(assetAbsPath);
+    const uri = fileUri.getUriFromPath(assetAbsPath);
     const context = Utils.getContext();
     const wantInfo: Want = {
       action: 'ohos.want.action.viewData',

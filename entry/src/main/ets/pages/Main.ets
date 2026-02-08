@@ -31,7 +31,7 @@ import { inputMethod } from '@kit.IMEKit';
  * 主程序。
  *
  * @author <a href="https://88250.b3log.org">Liang Ding</a>
- * @version 1.1.0.0, Feb 5, 2026
+ * @version 1.1.0.1, Feb 8, 2026
  * @since 3.1.14
  */
 @Entry
@@ -74,8 +74,10 @@ struct Main {
               "changeStatusBarColor",
               "readClipboard",
               "readHTMLClipboard",
+              "readSiYuanHTMLClipboard",
               "writeClipboard",
               "writeHTMLClipboard",
+              "writeSiYuanHTMLClipboard",
               "returnDesktop",
               "exit",
               "showKeyboard",
