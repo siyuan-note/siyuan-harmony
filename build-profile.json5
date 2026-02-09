@@ -5,13 +5,13 @@
         "name": "default",
         "type": "HarmonyOS",
         "material": {
-          "storePassword": "0000001A666C01422E5938069497053E25831A37609581F91602C1D341CA7B1E1CA65AC97DD8CCA4D217",
-          "certpath": "D:/微云同步助手/845765/Keystore/思源笔记鸿蒙.cer",
+          "storeFile": "D:/微云同步助手/845765/Keystore/siyuan-harmony.p12",
+          "storePassword": "0000001A6E292CFFD48976196DCF924BC14EB74DD0D6A8CBEC263EFA159A43D4837059DE9EBD9817ED0A",
           "keyAlias": "key0",
-          "keyPassword": "0000001AAD802B9740346F0EF68061FA3852379DE64927316E9C581E6306CA6D173D3CB3C2909F7C7072",
-          "profile": "D:/微云同步助手/845765/Keystore/思源笔记鸿蒙Release.p7b",
+          "keyPassword": "0000001A6F1589CA931F285E1DC692E0B098C64DA1E100CD3CD624CE0A966500F3DBBFBDCEF68D0A4F36",
           "signAlg": "SHA256withECDSA",
-          "storeFile": "D:/微云同步助手/845765/Keystore/siyuan-harmony.p12"
+          "profile": "D:/微云同步助手/845765/Keystore/SiYuan鸿蒙Release.p7b",
+          "certpath": "D:/微云同步助手/845765/Keystore/思源笔记鸿蒙.cer"
         }
       }
     ],
