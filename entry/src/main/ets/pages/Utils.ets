@@ -17,10 +17,10 @@
  */
 
 import { fileIo as fs } from '@kit.CoreFileKit';
-import { bundleManager, common, UIAbility, Want } from '@kit.AbilityKit';
+import { abilityAccessCtrl, bundleManager, common, Permissions, UIAbility, Want } from '@kit.AbilityKit';
 import { hilog } from '@kit.PerformanceAnalysisKit';
 import napi from 'libentry.so';
-import { deviceInfo } from '@kit.BasicServicesKit';
+import { BusinessError, deviceInfo } from '@kit.BasicServicesKit';
 import { backgroundTaskManager } from '@kit.BackgroundTasksKit';
 import { PrintParam } from './Print';
 import { connection } from '@kit.NetworkKit';
@@ -29,7 +29,7 @@ import { connection } from '@kit.NetworkKit';
  * 工具类。
  *
  * @author <a href="https://88250.b3log.org">Liang Ding</a>
- * @version 1.2.2.0, Dec 27, 2025
+ * @version 1.3.0.1, Feb 10, 2026
  * @since 3.1.14
  */
 @Component
@@ -41,6 +41,103 @@ export struct Utils {
       .versionCode.toString();
   public static bundleName =
     bundleManager.getBundleInfoForSelfSync(bundleManager.BundleFlag.GET_BUNDLE_INFO_WITH_APPLICATION).name;
+
+  private static async checkPermissionGrant(permission: Permissions): Promise<boolean> {
+    let atManager: abilityAccessCtrl.AtManager = abilityAccessCtrl.createAtManager();
+    let grantStatus: abilityAccessCtrl.GrantStatus = abilityAccessCtrl.GrantStatus.PERMISSION_DENIED;
+    let tokenId: number = 0;
+    try {
+      let bundleInfo: bundleManager.BundleInfo =
+        await bundleManager.getBundleInfoForSelf(bundleManager.BundleFlag.GET_BUNDLE_INFO_WITH_APPLICATION);
+      let appInfo: bundleManager.ApplicationInfo = bundleInfo.appInfo;
+      tokenId = appInfo.accessTokenId;
+    } catch (error) {
+      const err: BusinessError = error as BusinessError;
+      console.error(`Failed to get bundle info for self. Code is ${err.code}, message is ${err.message}`);
+    }
+
+    try {
+      grantStatus = await atManager.checkAccessToken(tokenId, permission);
+    } catch (error) {
+      const err: BusinessError = error as BusinessError;
+      console.error(`Failed to check access token. Code is ${err.code}, message is ${err.message}`);
+    }
+
+    return grantStatus == abilityAccessCtrl.GrantStatus.PERMISSION_GRANTED;
+  }
+
+  private static async firstReqPermissionFormUser(permissions: Array<Permissions>) {
+    let atManager: abilityAccessCtrl.AtManager = abilityAccessCtrl.createAtManager();
+    const data = await atManager.requestPermissionsFromUser(Utils.getContext(), permissions)
+    let grantStatus: Array<number> = data.authResults;
+    return grantStatus.every(s => s == 0)
+  }
+
+  private static async reqPermissionsFromUser(permissions: Array<Permissions>) {
+    let atManager: abilityAccessCtrl.AtManager = abilityAccessCtrl.createAtManager();
+    try {
+      const isAuth = await Utils.firstReqPermissionFormUser(permissions)
+      if (isAuth) {
+        return true
+      }
+
+      return await new Promise<boolean>((resolve, reject) => {
+        const uiContext = Utils.getUIContext();
+        const context = Utils.getContext();
+        uiContext.showAlertDialog({
+          title: "系统提示",
+          message: "必须要授权才能使用，是否前往应用进行授权",
+          autoCancel: false,
+          primaryButton: {
+            value: "取消",
+            action: () => {
+              resolve(false)
+            }
+          },
+          secondaryButton: {
+            value: "前往授权",
+            action: async () => {
+              const secondAuthResults = await atManager.requestPermissionOnSetting(context, permissions)
+              const isSecondAuth =
+                secondAuthResults.every(s => s == abilityAccessCtrl.GrantStatus.PERMISSION_GRANTED)
+              if (!isSecondAuth) {
+                const isAuth = await Utils.firstReqPermissionFormUser(permissions)
+                resolve(isAuth)
+              } else {
+                resolve(true)
+              }
+            }
+          }
+        })
+      })
+
+    } catch (err) {
+      const error = err as BusinessError
+      console.error(`Failed to request permissions from user. Code is ${error.code}, message is ${error.message}`);
+    }
+    return true
+  }
+
+  static async requestPermissions(permissions: Permissions[]) {
+    const ps = permissions.map((s) => {
+      return Utils.checkPermissionGrant(s).then(isSuccess => {
+        if (isSuccess) {
+          return true
+        }
+        return Promise.reject(s)
+      })
+    })
+
+    const s = await Promise.allSettled(ps)
+    const rejectedPs = s.filter(item => item.status === "rejected").map(item => {
+      return (item as PromiseRejectedResult).reason as Permissions;
+    });
+
+    if (rejectedPs.length == 0) {
+      return true
+    }
+    return await Utils.reqPermissionsFromUser(rejectedPs)
+  }
 
   static exit() {
     const context = Utils.getContext()

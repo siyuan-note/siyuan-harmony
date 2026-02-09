@@ -65,6 +65,16 @@
       },
       {
         "name": "ohos.permission.PRINT"
+      },
+      {
+        "name": "ohos.permission.READ_PASTEBOARD",
+        "usedScene": {
+          "abilities": [
+            "EntryAbility"
+          ],
+          "when": "inuse"
+        },
+        "reason": "$string:app_name"
       }
     ]
   }

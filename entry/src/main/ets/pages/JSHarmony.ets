@@ -24,13 +24,12 @@ import { emitter, pasteboard } from '@kit.BasicServicesKit';
 import napi from 'libentry.so';
 import { Want, wantConstant } from '@kit.AbilityKit';
 import { fileUri, fileIo as fs } from '@kit.CoreFileKit';
-import { util } from '@kit.ArkTS';
 
 /**
  * JavaScript 接口。
  *
  * @author <a href="https://88250.b3log.org">Liang Ding</a>
- * @version 1.4.0.0, Feb 8, 2026
+ * @version 1.4.0.1, Feb 10, 2026
  * @since 3.1.14
  */
 @Component
@@ -54,9 +53,9 @@ export struct JSHarmony {
 
   writeSiYuanHTMLClipboard(text: string, html: string, siyuanHTML: string) {
     try {
+      const pasteData: pasteboard.PasteData =
+        pasteboard.createData(pasteboard.MIMETYPE_TEXT_HTML, html + "__@text/siyuan@__" + siyuanHTML);
       const systemPasteboard: pasteboard.SystemPasteboard = pasteboard.getSystemPasteboard();
-      const pasteData: pasteboard.PasteData = pasteboard.createData(pasteboard.MIMETYPE_TEXT_HTML, html);
-      pasteData.addRecord("text/siyuan", siyuanHTML);
       systemPasteboard.setDataSync(pasteData);
     } catch (e) {
       hilog.error(0x0000, "siyuan", "Failed to set PasteData. Cause: " + e.message);
@@ -118,11 +117,11 @@ export struct JSHarmony {
 
   readSiYuanHTMLClipboard(): string {
     try {
-      const textPasteData = pasteboard.getSystemPasteboard().getDataSync();
-      for (let i = 0; i < textPasteData.getRecordCount(); i++) {
-        const record = textPasteData.getRecord(i);
-        const textDecoder = util.TextDecoder.create("utf-8");
-        return textDecoder.decodeToString(new Uint8Array((record.data["text/siyuan"])));
+      const result = pasteboard.getSystemPasteboard().getDataSync();
+      let html = result.getPrimaryHtml();
+      const parts = html.split("__@text/siyuan@__");
+      if (2 === parts.length) {
+        return parts[1];
       }
       return "";
     } catch (e) {

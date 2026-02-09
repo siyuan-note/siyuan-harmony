@@ -19,7 +19,7 @@
 import { hilog } from '@kit.PerformanceAnalysisKit';
 import { backgroundTaskManager } from '@kit.BackgroundTasksKit';
 import { BusinessError, deviceInfo, emitter } from '@kit.BasicServicesKit';
-import { common, wantAgent, WantAgent } from '@kit.AbilityKit';
+import { wantAgent, WantAgent } from '@kit.AbilityKit';
 import { webview } from '@kit.ArkWeb';
 import napi from 'libentry.so';
 import { JSHarmony } from './JSHarmony';
@@ -31,7 +31,7 @@ import { inputMethod } from '@kit.IMEKit';
  * 主程序。
  *
  * @author <a href="https://88250.b3log.org">Liang Ding</a>
- * @version 1.1.0.1, Feb 8, 2026
+ * @version 1.1.0.2, Feb 10, 2026
  * @since 3.1.14
  */
 @Entry
@@ -121,8 +121,8 @@ struct Main {
     .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.BOTTOM]);
   }
 
-  aboutToAppear(): void {
-
+  async aboutToAppear() {
+    //await Utils.requestPermissions(["ohos.permission.READ_PASTEBOARD"]);
   }
 
   private listenKeyboard() {
