@@ -122,7 +122,7 @@ struct Main {
   }
 
   async aboutToAppear() {
-    //await Utils.requestPermissions(["ohos.permission.READ_PASTEBOARD"]);
+    await Utils.requestPermissions(["ohos.permission.READ_PASTEBOARD"]);
   }
 
   private listenKeyboard() {
