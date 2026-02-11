@@ -31,7 +31,7 @@ import { inputMethod } from '@kit.IMEKit';
  * 主程序。
  *
  * @author <a href="https://88250.b3log.org">Liang Ding</a>
- * @version 1.1.0.2, Feb 10, 2026
+ * @version 1.1.1.0, Feb 11, 2026
  * @since 3.1.14
  */
 @Entry
@@ -123,6 +123,10 @@ struct Main {
 
   async aboutToAppear() {
     await Utils.requestPermissions(["ohos.permission.READ_PASTEBOARD"]);
+
+    if (!Utils.isPhone()) {
+      this.isFocusable = true;
+    }
   }
 
   private listenKeyboard() {

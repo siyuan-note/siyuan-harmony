@@ -29,7 +29,7 @@ import { connection } from '@kit.NetworkKit';
  * 工具类。
  *
  * @author <a href="https://88250.b3log.org">Liang Ding</a>
- * @version 1.3.0.1, Feb 10, 2026
+ * @version 1.4.0.0, Feb 11, 2026
  * @since 3.1.14
  */
 @Component
@@ -223,6 +223,10 @@ export struct Utils {
       return true
     }
     return fs.readTextSync(verFilePath) != Utils.appVerCode;
+  }
+
+  static isPhone(): boolean {
+    return "phone" === deviceInfo.deviceType
   }
 
   static isTablet(): boolean {
