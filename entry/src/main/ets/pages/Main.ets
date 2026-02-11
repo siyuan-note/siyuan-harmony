@@ -130,6 +130,10 @@ struct Main {
   }
 
   private listenKeyboard() {
+    if (!Utils.isPhone()) {
+      return;
+    }
+
     window.getLastWindow(this.getUIContext().getHostContext()).then(currentWindow => {
       currentWindow.on('keyboardHeightChange', (height) => {
         if (height > 0) {
