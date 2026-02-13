@@ -99,7 +99,7 @@ struct Main {
           });
 
           hilog.info(0x0000, "siyuan",
-            "appDir [" + appDir + "], workspaceBaseDir [" + workspaceBaseDir + "], ua [" + ua + "]");
+            "appDir [" + appDir + "], workspaceBaseDir [" + workspaceBaseDir + "], ua [" + ua + "], isPhone [" + Utils.isPhone() + "]");
           this.startKernel(appDir, workspaceBaseDir);
         })
         .onOverrideUrlLoading((webResourceRequest) => {
