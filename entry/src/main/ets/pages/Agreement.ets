@@ -16,6 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+import { hilog } from '@kit.PerformanceAnalysisKit';
 import PrivacyPolicyDialog from './PrivacyPolicyDialog';
 import { Utils } from './Utils';
 
@@ -29,6 +30,14 @@ import { Utils } from './Utils';
 @Entry
 @Component
 struct Agreement {
+  aboutToAppear(): void {
+    try {
+      Utils.setUIContext(this.getUIContext());
+    } catch (e) {
+      hilog.error(0x0000, "siyuan", "set ui context failed: " + e);
+    }
+  }
+
   build() {
     RelativeContainer() {
       Row({ space: 10 }) {

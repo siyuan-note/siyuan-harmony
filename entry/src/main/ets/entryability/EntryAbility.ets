@@ -20,7 +20,6 @@ import { AbilityConstant, UIAbility, Want } from '@kit.AbilityKit';
 import { hilog } from '@kit.PerformanceAnalysisKit';
 import { window } from '@kit.ArkUI';
 import { Utils } from '../pages/Utils';
-import { BusinessError } from '@kit.BasicServicesKit';
 
 /**
  * 主程序入口点。
@@ -31,61 +30,49 @@ import { BusinessError } from '@kit.BasicServicesKit';
  */
 export default class EntryAbility extends UIAbility {
   onCreate(want: Want, launchParam: AbilityConstant.LaunchParam): void {
-    hilog.info(0x0000, "siyuan", 'Ability onCreate [launchParam=' + JSON.stringify(launchParam) + "]");
+    hilog.info(0x0000, "siyuan", 'ability onCreate [launchParam=' + JSON.stringify(launchParam) + "]");
     AppStorage.setOrCreate('abilityContext', this.context);
   }
 
   onDestroy(): void {
-    hilog.info(0x0000, "siyuan", 'Ability onDestroy');
+    hilog.info(0x0000, "siyuan", 'ability onDestroy');
   }
 
   async onWindowStageCreate(windowStage: window.WindowStage): Promise<void> {
-    hilog.info(0x0000, "siyuan", 'Ability onWindowStageCreate');
+    hilog.info(0x0000, "siyuan", 'ability onWindowStageCreate');
 
-    windowStage.getMainWindow((err: BusinessError, wnd) => {
-      const errCode: number = err.code;
-      if (errCode) {
-        hilog.error(0x0000, "siyuan", err.message);
-        return;
-      }
-
-      try {
-        wnd.setWindowLayoutFullScreen(true);
-        wnd.setSpecificSystemBarEnabled('status', false);
-        wnd.setSpecificSystemBarEnabled('navigationIndicator', false);
-      } catch (e) {
-        hilog.error(0x0000, "siyuan", "Set main window system bar failed: " + e);
-      }
-
-      try {
-        Utils.setUIContext(wnd.getUIContext());
-      } catch (e) {
-        hilog.error(0x0000, "siyuan", "Set ui context failed: " + e);
-      }
-    });
+    const wnd = windowStage.getMainWindowSync();
+    try {
+      wnd.setWindowLayoutFullScreen(true);
+      wnd.setSpecificSystemBarEnabled('status', false);
+      wnd.setSpecificSystemBarEnabled('navigationIndicator', false);
+    } catch (e) {
+      hilog.error(0x0000, "siyuan", "set main window system bar failed: " + e);
+    }
 
     await Utils.initAppearance(this);
+
     if (Utils.isFirstRun(this)) {
-      hilog.info(0x0000, "siyuan", "Loading agreement");
+      hilog.info(0x0000, "siyuan", "loading agreement");
       windowStage.loadContent("pages/Agreement");
     } else {
-      hilog.info(0x0000, "siyuan", "Loading main");
+      hilog.info(0x0000, "siyuan", "loading main");
       windowStage.loadContent("pages/Main");
     }
   }
 
   onWindowStageDestroy(): void {
     // Main window is destroyed, release UI related resources
-    hilog.info(0x0000, "siyuan", 'Ability onWindowStageDestroy');
+    hilog.info(0x0000, "siyuan", 'ability onWindowStageDestroy');
   }
 
   onForeground(): void {
     // Ability has brought to foreground
-    hilog.info(0x0000, "siyuan", 'Ability onForeground');
+    hilog.info(0x0000, "siyuan", 'ability onForeground');
   }
 
   onBackground(): void {
     // Ability has back to background
-    hilog.info(0x0000, "siyuan", 'Ability onBackground');
+    hilog.info(0x0000, "siyuan", 'ability onBackground');
   }
 };

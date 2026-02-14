@@ -58,7 +58,7 @@ export struct JSHarmony {
       const systemPasteboard: pasteboard.SystemPasteboard = pasteboard.getSystemPasteboard();
       systemPasteboard.setDataSync(pasteData);
     } catch (e) {
-      hilog.error(0x0000, "siyuan", "Failed to set PasteData. Cause: " + e.message);
+      hilog.error(0x0000, "siyuan", "failed to set PasteData. Cause: " + e.message);
     }
   }
 
@@ -68,7 +68,7 @@ export struct JSHarmony {
       const pasteData: pasteboard.PasteData = pasteboard.createData(pasteboard.MIMETYPE_TEXT_HTML, html);
       systemPasteboard.setDataSync(pasteData);
     } catch (e) {
-      hilog.error(0x0000, "siyuan", "Failed to set PasteData. Cause: " + e.message);
+      hilog.error(0x0000, "siyuan", "failed to set PasteData. Cause: " + e.message);
     }
   }
 
@@ -78,7 +78,7 @@ export struct JSHarmony {
       const pasteData: pasteboard.PasteData = pasteboard.createData(pasteboard.MIMETYPE_TEXT_PLAIN, text);
       systemPasteboard.setDataSync(pasteData);
     } catch (e) {
-      hilog.error(0x0000, "siyuan", "Failed to set PasteData. Cause: " + e.message);
+      hilog.error(0x0000, "siyuan", "failed to set PasteData. Cause: " + e.message);
     }
   }
 

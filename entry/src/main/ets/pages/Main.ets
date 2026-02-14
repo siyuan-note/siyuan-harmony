@@ -122,6 +122,12 @@ struct Main {
   }
 
   async aboutToAppear() {
+    try {
+      Utils.setUIContext(this.getUIContext());
+    } catch (e) {
+      hilog.error(0x0000, "siyuan", "set ui context failed: " + e);
+    }
+
     await Utils.requestPermissions(["ohos.permission.READ_PASTEBOARD"]);
 
     if (!Utils.isPhone()) {

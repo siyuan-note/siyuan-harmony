@@ -58,10 +58,10 @@ struct Print {
                 task.on("fail", this.returnToMain);
                 task.on("cancel", this.returnToMain);
               }).catch((err: Error) => {
-              hilog.error(0x0000, "siyuan", `Message: ${err.message}`);
+              hilog.error(0x0000, "siyuan", `message: ${err.message}`);
             })
           } catch (error) {
-            hilog.error(0x0000, "siyuan", `ErrorCode: ${error.code},  Message: ${error.message}`);
+            hilog.error(0x0000, "siyuan", `error: ${error.code},  Message: ${error.message}`);
           }
         })
     }

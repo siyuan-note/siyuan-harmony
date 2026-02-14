@@ -190,7 +190,7 @@ export struct Utils {
 
   static async initAppearance(ability: UIAbility) {
     if (!Utils.needUnzipAssets(ability)) {
-      hilog.debug(0x0000, "siyuan", "Do not need unzip appearance [" + Utils.appVerCode + "]");
+      hilog.debug(0x0000, "siyuan", "do not need unzip appearance [" + Utils.appVerCode + "]");
       return;
     }
 
@@ -205,7 +205,7 @@ export struct Utils {
   }
 
   static async unzipAsset(ability: UIAbility): Promise<void> {
-    hilog.debug(0x0000, "siyuan", "Unzipping appearance [" + Utils.appVerCode + "]");
+    hilog.debug(0x0000, "siyuan", "unzipping appearance [" + Utils.appVerCode + "]");
     const appZipData = ability.context.resourceManager.getRawFileContentSync("app.zip").buffer;
     const appZip = ability.context.tempDir + "/app.zip";
     const appZipFile = fs.openSync(appZip, fs.OpenMode.CREATE | fs.OpenMode.READ_WRITE);
@@ -214,7 +214,7 @@ export struct Utils {
     const appDir = ability.context.filesDir + "/app/";
     fs.mkdirSync(appDir);
     napi.unzip(appZip, appDir);
-    hilog.info(0x0000, "siyuan", "Unzipped appearance [" + Utils.appVerCode + "]");
+    hilog.info(0x0000, "siyuan", "unzipped appearance [" + Utils.appVerCode + "]");
   }
 
   static needUnzipAssets(ability: UIAbility): boolean {
@@ -241,13 +241,13 @@ export struct Utils {
     try {
       let net = connection.getDefaultNetSync();
       if (!net) {
-        hilog.warn(0x0000, "siyuan", "Get network failed");
+        hilog.warn(0x0000, "siyuan", "get network failed");
         return "127.0.0.1";
       }
 
       let props = connection.getConnectionPropertiesSync(net);
       if (!props) {
-        hilog.warn(0x0000, "siyuan", "Get network properties failed");
+        hilog.warn(0x0000, "siyuan", "get network properties failed");
         return "127.0.0.1";
       }
 
