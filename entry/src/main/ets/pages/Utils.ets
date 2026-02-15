@@ -190,7 +190,7 @@ export struct Utils {
 
   static async initAppearance(ability: UIAbility) {
     if (!Utils.needUnzipAssets(ability)) {
-      hilog.debug(0x0000, "siyuan", "do not need unzip appearance [" + Utils.appVerCode + "]");
+      hilog.info(0x0000, "siyuan", "do not need unzip appearance [" + Utils.appVerCode + "]");
       return;
     }
 
@@ -205,7 +205,7 @@ export struct Utils {
   }
 
   static async unzipAsset(ability: UIAbility): Promise<void> {
-    hilog.debug(0x0000, "siyuan", "unzipping appearance [" + Utils.appVerCode + "]");
+    hilog.info(0x0000, "siyuan", "unzipping appearance [" + Utils.appVerCode + "]");
     const appZipData = ability.context.resourceManager.getRawFileContentSync("app.zip").buffer;
     const appZip = ability.context.tempDir + "/app.zip";
     const appZipFile = fs.openSync(appZip, fs.OpenMode.CREATE | fs.OpenMode.READ_WRITE);
