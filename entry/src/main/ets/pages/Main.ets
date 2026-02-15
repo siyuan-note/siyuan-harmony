@@ -197,7 +197,7 @@ struct Main {
   async waitFotKernelHttpServing() {
     while (true) {
       await this.sleep(10);
-      const ok = napi.isHttpServing();
+      const ok = await napi.isHttpServing();
       hilog.debug(0x0000, "siyuan", "http serving [" + ok + "]");
       if (ok) {
         break;

@@ -213,7 +213,7 @@ export struct Utils {
     fs.closeSync(appZipFile);
     const appDir = ability.context.filesDir + "/app/";
     fs.mkdirSync(appDir);
-    napi.unzip(appZip, appDir);
+    await napi.unzip(appZip, appDir);
     hilog.info(0x0000, "siyuan", "unzipped appearance [" + Utils.appVerCode + "]");
   }
 
