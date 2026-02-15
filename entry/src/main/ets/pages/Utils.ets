@@ -198,6 +198,7 @@ export struct Utils {
     try {
       fs.rmdirSync(appDir);
     } catch (e) {
+      hilog.error(0x0000, "siyuan", "remove app dir [" + appDir + "] failed: " + e)
     }
     await Utils.unzipAsset(ability);
     const f = fs.openSync(appDir + "/VERSION", fs.OpenMode.CREATE | fs.OpenMode.READ_WRITE);
@@ -213,7 +214,7 @@ export struct Utils {
     fs.closeSync(appZipFile);
     const appDir = ability.context.filesDir + "/app/";
     fs.mkdirSync(appDir);
-    await napi.unzip(appZip, appDir);
+    napi.unzip(appZip, appDir);
     hilog.info(0x0000, "siyuan", "unzipped appearance [" + Utils.appVerCode + "]");
   }
 
