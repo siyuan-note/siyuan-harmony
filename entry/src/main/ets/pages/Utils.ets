@@ -209,7 +209,7 @@ export struct Utils {
     hilog.info(0x0000, "siyuan", "unzipping appearance [" + Utils.appVerCode + "]");
     const appZipData = ability.context.resourceManager.getRawFileContentSync("app.zip").buffer;
     const appZip = ability.context.tempDir + "/app.zip";
-    const appZipFile = fs.openSync(appZip, fs.OpenMode.CREATE | fs.OpenMode.READ_WRITE);
+    const appZipFile = fs.openSync(appZip, fs.OpenMode.CREATE | fs.OpenMode.READ_WRITE | fs.OpenMode.TRUNC);
     fs.writeSync(appZipFile.fd, appZipData);
     fs.closeSync(appZipFile);
     const appDir = ability.context.filesDir + "/app/";
