@@ -31,7 +31,7 @@ import { inputMethod } from '@kit.IMEKit';
  * 主程序。
  *
  * @author <a href="https://88250.b3log.org">Liang Ding</a>
- * @version 1.1.1.0, Feb 11, 2026
+ * @version 1.1.1.1, Feb 22, 2026
  * @since 3.1.14
  */
 @Entry
@@ -142,6 +142,10 @@ struct Main {
 
     window.getLastWindow(this.getUIContext().getHostContext()).then(currentWindow => {
       currentWindow.on('keyboardHeightChange', (height) => {
+        if (window.WindowStatusType.FLOATING === currentWindow.getWindowStatus()) {
+          return;
+        }
+
         if (height > 0) {
           this.controller.runJavaScript("javascript:showKeyboardToolbar()");
           this.isFocusable = true;
