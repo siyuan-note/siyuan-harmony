@@ -29,7 +29,7 @@ import { fileUri, fileIo as fs } from '@kit.CoreFileKit';
  * JavaScript 接口。
  *
  * @author <a href="https://88250.b3log.org">Liang Ding</a>
- * @version 1.4.0.1, Feb 10, 2026
+ * @version 1.4.0.2, Feb 25, 2026
  * @since 3.1.14
  */
 @Component
@@ -40,6 +40,14 @@ export struct JSHarmony {
 
   hideKeyboard() {
     emitter.emit("isFocusableFalse");
+  }
+
+  setWebViewFocusable(focusable: boolean) {
+    if (focusable) {
+      emitter.emit("isFocusableTrue");
+    } else {
+      emitter.emit("isFocusableFalse");
+    }
   }
 
   exit() {
