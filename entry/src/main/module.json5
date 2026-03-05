@@ -75,6 +75,9 @@
           "when": "inuse"
         },
         "reason": "$string:app_name"
+      },
+      {
+        "name": "ohos.permission.PUBLISH_AGENT_REMINDER"
       }
     ]
   }

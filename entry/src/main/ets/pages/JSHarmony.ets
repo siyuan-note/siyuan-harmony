@@ -22,18 +22,62 @@ import hilog from '@ohos.hilog';
 import { BusinessError } from '@ohos.base';
 import { emitter, pasteboard } from '@kit.BasicServicesKit';
 import napi from 'libentry.so';
-import { Want, wantConstant } from '@kit.AbilityKit';
+import { Want, WantAgent, wantAgent, wantConstant } from '@kit.AbilityKit';
 import { fileUri, fileIo as fs } from '@kit.CoreFileKit';
+import { notificationManager } from '@kit.NotificationKit';
+import { reminderAgentManager } from '@kit.BackgroundTasksKit';
 
 /**
  * JavaScript 接口。
  *
  * @author <a href="https://88250.b3log.org">Liang Ding</a>
- * @version 1.4.0.2, Feb 25, 2026
+ * @version 1.5.0.0, Mar 5, 2026
  * @since 3.1.14
  */
 @Component
 export struct JSHarmony {
+  async sendNotification(channel: string, title: string, body: string, delayInSeconds: number) {
+    if (delayInSeconds > 0) {
+      let timer: reminderAgentManager.ReminderRequestTimer = {
+        reminderType: reminderAgentManager.ReminderType.REMINDER_TYPE_TIMER,
+        triggerTimeInSeconds: delayInSeconds,
+        title: title,
+        content: body,
+        wantAgent: {
+          pkgName: Utils.bundleName,
+          abilityName: "EntryAbility"
+        },
+        slotType: notificationManager.SlotType.SOCIAL_COMMUNICATION
+      };
+      reminderAgentManager.publishReminder(timer);
+      return;
+    }
+
+    const info: wantAgent.WantAgentInfo = {
+      wants: [
+        {
+          bundleName: Utils.bundleName,
+          abilityName: 'EntryAbility',
+        }
+      ],
+      actionType: wantAgent.OperationType.START_ABILITY,
+      requestCode: 0,
+      actionFlags: [wantAgent.WantAgentFlags.UPDATE_PRESENT_FLAG]
+    };
+
+    let clickAgent: WantAgent = await wantAgent.getWantAgent(info);
+
+    let request: notificationManager.NotificationRequest = {
+      id: Math.floor(Date.now() / 1000),
+      wantAgent: clickAgent,
+      content: {
+        notificationContentType: notificationManager.ContentType.NOTIFICATION_CONTENT_BASIC_TEXT,
+        normal: { title: title, text: body, additionalText: '' }
+      }
+    };
+    notificationManager.publish(request);
+  }
+
   showKeyboard() {
     emitter.emit("isFocusableTrue");
   }
