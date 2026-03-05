@@ -31,7 +31,7 @@ import { inputMethod } from '@kit.IMEKit';
  * 主程序。
  *
  * @author <a href="https://88250.b3log.org">Liang Ding</a>
- * @version 1.1.1.2, Feb 25, 2026
+ * @version 1.1.1.3, Mar 5, 2026
  * @since 3.1.14
  */
 @Entry
@@ -82,7 +82,8 @@ struct Main {
               "exit",
               "showKeyboard",
               "hideKeyboard",
-              "setWebViewFocusable"
+              "setWebViewFocusable",
+              "sendNotification"
             ]
           );
 
