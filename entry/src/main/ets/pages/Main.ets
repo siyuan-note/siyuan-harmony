@@ -83,7 +83,8 @@ struct Main {
               "showKeyboard",
               "hideKeyboard",
               "setWebViewFocusable",
-              "sendNotification"
+              "sendNotification",
+              "cancelNotification"
             ]
           );
 

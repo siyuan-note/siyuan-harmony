@@ -36,6 +36,19 @@ import { reminderAgentManager } from '@kit.BackgroundTasksKit';
  */
 @Component
 export struct JSHarmony {
+  async cancelNotification(id: number) {
+    try {
+      await notificationManager.cancel(id);
+    } catch (e) {
+      // 忽略
+    }
+    try {
+      await reminderAgentManager.cancelReminder(id);
+    } catch (e) {
+      // 忽略
+    }
+  }
+
   async sendNotification(channel: string, title: string, body: string, delayInSeconds: number) {
     if (delayInSeconds > 0) {
       let timer: reminderAgentManager.ReminderRequestTimer = {
@@ -49,8 +62,12 @@ export struct JSHarmony {
         },
         slotType: notificationManager.SlotType.SOCIAL_COMMUNICATION
       };
-      reminderAgentManager.publishReminder(timer);
-      return;
+      try {
+        return await reminderAgentManager.publishReminder(timer);
+      } catch (e) {
+        hilog.error(0x0000, "siyuan", "publish reminder failed: " + e);
+        return -1;
+      }
     }
 
     const info: wantAgent.WantAgentInfo = {
@@ -67,15 +84,22 @@ export struct JSHarmony {
 
     let clickAgent: WantAgent = await wantAgent.getWantAgent(info);
 
+    const id = Math.floor(Date.now() / 1000);
     let request: notificationManager.NotificationRequest = {
-      id: Math.floor(Date.now() / 1000),
+      id: id,
       wantAgent: clickAgent,
       content: {
         notificationContentType: notificationManager.ContentType.NOTIFICATION_CONTENT_BASIC_TEXT,
         normal: { title: title, text: body, additionalText: '' }
       }
     };
-    notificationManager.publish(request);
+    try {
+      await notificationManager.publish(request);
+      return id;
+    } catch (e) {
+      hilog.error(0x0000, "siyuan", "publish notification failed: " + e);
+      return -1;
+    }
   }
 
   showKeyboard() {
