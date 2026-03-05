@@ -99,7 +99,7 @@ export struct JSHarmony {
 
     let clickAgent: WantAgent = await wantAgent.getWantAgent(info);
 
-    const id = Math.floor(Date.now() / 1000);
+    const id = Date.now();
     let request: notificationManager.NotificationRequest = {
       id: id,
       wantAgent: clickAgent,
