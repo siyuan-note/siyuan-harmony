@@ -50,6 +50,21 @@ export struct JSHarmony {
   }
 
   async sendNotification(channel: string, title: string, body: string, delayInSeconds: number) {
+    try {
+      const isAllowed = notificationManager.isNotificationEnabledSync();
+      if (!isAllowed) {
+        try {
+          await notificationManager.requestEnableNotification(Utils.getContext());
+        } catch (e) {
+          hilog.error(0x0000, "siyuan", "request enable notification failed: " + e);
+        }
+        return -1;
+      }
+    } catch (e) {
+      hilog.error(0x0000, "siyuan", "check notification enable failed: " + e);
+      return -1;
+    }
+
     if (delayInSeconds > 0) {
       let timer: reminderAgentManager.ReminderRequestTimer = {
         reminderType: reminderAgentManager.ReminderType.REMINDER_TYPE_TIMER,
