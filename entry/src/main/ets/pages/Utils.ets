@@ -140,9 +140,16 @@ export struct Utils {
   }
 
   static exit() {
-    const context = Utils.getContext()
-    context.terminateSelf();
-    backgroundTaskManager.stopBackgroundRunning(context);
+    hilog.info(0x0000, "siyuan", "exit siyuan app")
+    try {
+      const context = Utils.getContext()
+      context.terminateSelf();
+      backgroundTaskManager.stopBackgroundRunning(context);
+    } catch (err) {
+      let code = (err as BusinessError).code;
+      let message = (err as BusinessError).message;
+      hilog.error(0x0000, "siyuan", `terminateSelf failed, code is ${code}, message is ${message}`);
+    }
 
     try {
       napi.exit();
