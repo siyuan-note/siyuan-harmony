@@ -75,7 +75,8 @@ export struct JSHarmony {
           pkgName: Utils.bundleName,
           abilityName: "EntryAbility"
         },
-        slotType: notificationManager.SlotType.SOCIAL_COMMUNICATION
+        ringDuration: 7,
+        slotType: notificationManager.SlotType.SERVICE_INFORMATION
       };
       try {
         return await reminderAgentManager.publishReminder(timer);
