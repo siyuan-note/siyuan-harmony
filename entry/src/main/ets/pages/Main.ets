@@ -26,12 +26,13 @@ import { JSHarmony } from './JSHarmony';
 import { Utils } from './Utils';
 import { window } from '@kit.ArkUI';
 import { inputMethod } from '@kit.IMEKit';
+import inputDevice from '@ohos.multimodalInput.inputDevice';
 
 /**
  * 主程序。
  *
  * @author <a href="https://88250.b3log.org">Liang Ding</a>
- * @version 1.1.1.3, Mar 5, 2026
+ * @version 1.1.1.4, Mar 18, 2026
  * @since 3.1.14
  */
 @Entry
@@ -40,6 +41,7 @@ struct Main {
   controller: webview.WebviewController = new webview.WebviewController();
   jsHarmony: JSHarmony = new JSHarmony();
   @State isFocusable: boolean = false;
+  @State keyBoards: Map<number, inputDevice.KeyboardType> = new Map();
 
   build() {
     Row() {
@@ -137,10 +139,38 @@ struct Main {
     if (!Utils.isPhone()) {
       this.isFocusable = true;
     }
+
+    inputDevice.getDeviceList().then(data => {
+      for (let i = 0; i < data.length; ++i) {
+        inputDevice.getKeyboardType(data[i]).then(type => {
+          if (type === inputDevice.KeyboardType.ALPHABETIC_KEYBOARD) {
+            this.keyBoards.set(data[i], type);
+            this.isFocusable = true;
+          }
+        });
+      }
+    });
+
+    inputDevice.on("change", (data) => {
+      inputDevice.getKeyboardType(data.deviceId).then((type) => {
+        if (type === inputDevice.KeyboardType.ALPHABETIC_KEYBOARD && data.type === 'add') {
+          this.keyBoards.set(data.deviceId, type);
+          this.isFocusable = true;
+        }
+      });
+      if (this.keyBoards.get(data.deviceId) === inputDevice.KeyboardType.ALPHABETIC_KEYBOARD &&
+        data.type === 'remove') {
+        this.keyBoards.delete(data.deviceId);
+      }
+    });
   }
 
   private listenKeyboard() {
     if (!Utils.isPhone()) {
+      return;
+    }
+
+    if (0 < this.keyBoards.size) {
       return;
     }
 
