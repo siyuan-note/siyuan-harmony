@@ -16,8 +16,16 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { fileIo as fs } from '@kit.CoreFileKit';
-import { abilityAccessCtrl, bundleManager, common, Permissions, UIAbility, Want } from '@kit.AbilityKit';
+import { fileUri, fileIo as fs } from '@kit.CoreFileKit';
+import {
+  abilityAccessCtrl,
+  bundleManager,
+  common,
+  OpenLinkOptions,
+  Permissions,
+  UIAbility,
+  Want
+} from '@kit.AbilityKit';
 import { hilog } from '@kit.PerformanceAnalysisKit';
 import napi from 'libentry.so';
 import { BusinessError, deviceInfo } from '@kit.BasicServicesKit';
@@ -29,7 +37,7 @@ import { connection } from '@kit.NetworkKit';
  * 工具类。
  *
  * @author <a href="https://88250.b3log.org">Liang Ding</a>
- * @version 1.4.0.0, Feb 11, 2026
+ * @version 1.4.0.1, Apr 3, 2026
  * @since 3.1.14
  */
 @Component
@@ -187,6 +195,26 @@ export struct Utils {
     }
 
     const context = Utils.getContext();
+
+    if (url.startsWith("file://")) {
+      const filePath = url.substring("file://".length);
+      const uri = fileUri.getUriFromPath(filePath);
+      let link: string = 'filemanager://openDirectory';
+      let openLinkOptions: OpenLinkOptions = {
+        parameters: {
+          'fileUri': uri
+        }
+      };
+      try {
+        context.openLink(link, openLinkOptions).catch((err: BusinessError) => {
+          hilog.error(0x0000, "siyuan", "open link failed: " + err);
+        });
+      } catch (err) {
+        hilog.error(0x0000, "siyuan", "open link failed: " + err);
+      }
+      return
+    }
+
     const wantInfo: Want = {
       action: 'ohos.want.action.viewData',
       entities: ['entity.system.browsable'],
