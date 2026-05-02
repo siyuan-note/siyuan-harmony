@@ -32,7 +32,7 @@ import inputDevice from '@ohos.multimodalInput.inputDevice';
  * 主程序。
  *
  * @author <a href="https://88250.b3log.org">Liang Ding</a>
- * @version 1.1.1.4, Mar 18, 2026
+ * @version 1.2.0.0, May 3, 2026
  * @since 3.1.14
  */
 @Entry
@@ -70,6 +70,7 @@ struct Main {
           this.controller.registerJavaScriptProxy(this.jsHarmony, "JSHarmony",
             [
               "exportByDefault",
+              "saveExportFile",
               "openExternal",
               "print",
               "getScreenWidthPx",

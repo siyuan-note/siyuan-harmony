@@ -23,15 +23,17 @@ import { BusinessError } from '@ohos.base';
 import { emitter, pasteboard } from '@kit.BasicServicesKit';
 import napi from 'libentry.so';
 import { Want, WantAgent, wantAgent, wantConstant } from '@kit.AbilityKit';
-import { fileUri, fileIo as fs } from '@kit.CoreFileKit';
+import { Environment, fileUri, fileIo as fs } from '@kit.CoreFileKit';
 import { notificationManager } from '@kit.NotificationKit';
 import { reminderAgentManager } from '@kit.BackgroundTasksKit';
+import { http } from '@kit.NetworkKit';
+import { promptAction } from '@kit.ArkUI';
 
 /**
  * JavaScript 接口。
  *
  * @author <a href="https://88250.b3log.org">Liang Ding</a>
- * @version 1.5.0.0, Mar 5, 2026
+ * @version 1.6.0.0, May 3, 2026
  * @since 3.1.14
  */
 @Component
@@ -229,6 +231,68 @@ export struct JSHarmony {
     }
 
     Utils.openByDefaultBrowser(url);
+  }
+
+  saveExportFile(url: string) {
+    if (!url) {
+      return;
+    }
+
+    let fullUrl = url;
+    if (fullUrl.startsWith("/")) {
+      fullUrl = "http://127.0.0.1:6806" + fullUrl;
+    }
+
+    let fileName = fullUrl.substring(fullUrl.lastIndexOf('/') + 1);
+    const queryIdx = fileName.indexOf('?');
+    if (-1 !== queryIdx) {
+      fileName = fileName.substring(0, queryIdx);
+    }
+    fileName = decodeURIComponent(fileName);
+    if (!fileName) {
+      fileName = "export";
+    }
+
+    const httpRequest = http.createHttp();
+    httpRequest.request(fullUrl, {
+      method: http.RequestMethod.GET,
+      expectDataType: http.HttpDataType.ARRAY_BUFFER,
+      connectTimeout: 5000,
+      readTimeout: 60000 * 10,
+    }).then((response) => {
+      const data = response.result as ArrayBuffer;
+      if (!data) {
+        this.showSaveToast("导出失败 / Export failed");
+        return;
+      }
+
+      try {
+        const downloadDir = Environment.getUserDownloadDir();
+        const filePath = downloadDir + "/" + fileName;
+        const file = fs.openSync(filePath, fs.OpenMode.CREATE | fs.OpenMode.READ_WRITE | fs.OpenMode.TRUNC);
+        fs.writeSync(file.fd, data);
+        fs.closeSync(file);
+
+        this.showSaveToast("已导出到下载目录: " + fileName + " / Exported to Downloads: " + fileName);
+      } catch (e) {
+        hilog.error(0x0000, "siyuan", "saveExportFile write failed: " + e);
+        this.showSaveToast("导出失败，无法写入文件 / Export failed, cannot write file");
+      }
+    }).catch((e: BusinessError) => {
+      hilog.error(0x0000, "siyuan", "saveExportFile download failed: " + e);
+      this.showSaveToast("导出失败 / Export failed");
+    });
+  }
+
+  private showSaveToast(message: string) {
+    try {
+      promptAction.showToast({
+        message: message,
+        duration: 2000
+      });
+    } catch (e) {
+      hilog.error(0x0000, "siyuan", "show toast failed: " + e);
+    }
   }
 
   async print(title: string, html: string) {
