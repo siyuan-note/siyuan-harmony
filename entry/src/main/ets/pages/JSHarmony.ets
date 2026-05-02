@@ -23,7 +23,7 @@ import { BusinessError } from '@ohos.base';
 import { emitter, pasteboard } from '@kit.BasicServicesKit';
 import napi from 'libentry.so';
 import { Want, WantAgent, wantAgent, wantConstant } from '@kit.AbilityKit';
-import { Environment, fileUri, fileIo as fs } from '@kit.CoreFileKit';
+import { fileUri, fileIo as fs, picker } from '@kit.CoreFileKit';
 import { notificationManager } from '@kit.NotificationKit';
 import { reminderAgentManager } from '@kit.BackgroundTasksKit';
 import { http } from '@kit.NetworkKit';
@@ -259,32 +259,39 @@ export struct JSHarmony {
       expectDataType: http.HttpDataType.ARRAY_BUFFER,
       connectTimeout: 5000,
       readTimeout: 60000 * 10,
-    }).then((response) => {
+    }).then(async (response) => { // 注意这里加了 async
       const data = response.result as ArrayBuffer;
-      if (!data) {
-        this.showSaveToast("导出失败 / Export failed");
+      if (!data || data.byteLength === 0) {
+        this.showToast("导出失败：数据为空 / Export failed: Empty data");
         return;
       }
 
       try {
-        const downloadDir = Environment.getUserDownloadDir();
-        const filePath = downloadDir + "/" + fileName;
-        const file = fs.openSync(filePath, fs.OpenMode.CREATE | fs.OpenMode.READ_WRITE | fs.OpenMode.TRUNC);
-        fs.writeSync(file.fd, data);
-        fs.closeSync(file);
-
-        this.showSaveToast("已导出到下载目录: " + fileName + " / Exported to Downloads: " + fileName);
+        const documentSaveOptions = new picker.DocumentSaveOptions();
+        documentSaveOptions.newFileNames = [fileName]; // 推荐的文件名
+        const documentPicker = new picker.DocumentViewPicker();
+        const result = await documentPicker.save(documentSaveOptions);
+        if (result && result.length > 0) {
+          const editUri = result[0];
+          const file = fs.openSync(editUri, fs.OpenMode.CREATE | fs.OpenMode.READ_WRITE | fs.OpenMode.TRUNC);
+          fs.writeSync(file.fd, data);
+          fs.closeSync(file);
+          this.showToast("已导出文件: " + fileName);
+        } else {
+          hilog.info(0x0000, "siyuan", "User cancelled file save");
+        }
       } catch (e) {
-        hilog.error(0x0000, "siyuan", "saveExportFile write failed: " + e);
-        this.showSaveToast("导出失败，无法写入文件 / Export failed, cannot write file");
+        const err = e as BusinessError;
+        hilog.error(0x0000, "siyuan", `saveExportFile write failed: Code ${err.code}, Msg ${err.message}`);
+        this.showToast("导出失败，无法写入文件 / Export failed");
       }
     }).catch((e: BusinessError) => {
       hilog.error(0x0000, "siyuan", "saveExportFile download failed: " + e);
-      this.showSaveToast("导出失败 / Export failed");
+      this.showToast("网络请求失败 / Download failed");
     });
   }
 
-  private showSaveToast(message: string) {
+  private showToast(message: string) {
     try {
       promptAction.showToast({
         message: message,
