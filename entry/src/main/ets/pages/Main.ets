@@ -32,7 +32,7 @@ import inputDevice from '@ohos.multimodalInput.inputDevice';
  * 主程序。
  *
  * @author <a href="https://88250.b3log.org">Liang Ding</a>
- * @version 1.2.0.0, May 3, 2026
+ * @version 1.2.0.1, May 5, 2026
  * @since 3.1.14
  */
 @Entry
@@ -102,6 +102,10 @@ struct Main {
             } catch (e) {
               hilog.error(0x0000, "siyuan", "stop input method session failed: " + e)
             }
+          });
+
+          emitter.on("systemLocked", () => {
+            this.controller.runJavaScript("javascript:window.lockscreenByMode && window.lockscreenByMode()");
           });
 
           hilog.info(0x0000, "siyuan",

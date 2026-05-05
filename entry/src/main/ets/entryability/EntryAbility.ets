@@ -17,6 +17,7 @@
  */
 
 import { AbilityConstant, UIAbility, Want } from '@kit.AbilityKit';
+import { emitter, screenLock } from '@kit.BasicServicesKit';
 import { hilog } from '@kit.PerformanceAnalysisKit';
 import { window } from '@kit.ArkUI';
 import { Utils } from '../pages/Utils';
@@ -74,5 +75,10 @@ export default class EntryAbility extends UIAbility {
   onBackground(): void {
     // Ability has back to background
     hilog.info(0x0000, "siyuan", 'ability onBackground');
+    screenLock.isScreenLocked().then((locked: boolean) => {
+      if (locked) {
+        emitter.emit("systemLocked");
+      }
+    });
   }
 };
