@@ -56,30 +56,17 @@
         "skills": [
           {
             "actions": [
-              "ohos.want.action.sendData"
+              "ohos.want.action.sendData",
+              "ohos.want.action.sendMultipleData"
             ],
             "entities": [
               "entity.system.default"
             ],
             "uris": [
               {
-                "type": "text/plain"
-              },
-              {
-                "type": "image/*"
-              },
-              {
-                "type": "video/*"
-              },
-              {
-                "type": "audio/*"
-              },
-              {
-                "type": "application/*"
-              },
-              {
+                "scheme": "file",
                 "type": "*/*"
-              }
+              },
             ]
           }
         ],

@@ -47,7 +47,8 @@ struct Shorthand {
     const type = (want.type) as string;
     const parameters = want.parameters as Record<string, Object>;
 
-    if ('ohos.want.action.sendData' === action) {
+    if ('ohos.want.action.sendData' === action ||
+        'ohos.want.action.sendMultipleData' === action) {
       if (type && type.startsWith('text/')) {
         // 分享文本
         const text = (parameters?.shareText as string) || (want.uri as string);
