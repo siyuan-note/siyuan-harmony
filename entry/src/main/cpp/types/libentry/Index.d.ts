@@ -23,3 +23,7 @@ export const unzip: (zipPath: string, dest: string) => void;
 export const getAssetAbsPath: (relativePath: string) => string;
 export const getCurrentWorkspacePath: () => string;
 export const exit: () => void;
+export const html2Markdown: (html: string) => string;
+export const filepathBase: (path: string) => string;
+export const filterUploadFileName: (name: string) => string;
+export const assetName: (name: string) => string;

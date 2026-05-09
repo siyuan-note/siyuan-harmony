@@ -1,0 +1,20 @@
+{
+  "shortcuts": [
+    {
+      "shortcutId": "shorthand",
+      "label": "$string:shorthand_label",
+      "icon": "$media:layered_image",
+      "wants": [
+        {
+          "bundleName": "org.b3log.siyuan.ho",
+          "moduleName": "entry",
+          "abilityName": "EntryAbility",
+          "parameters": {
+            "type": "shortcut",
+            "router": "pages/Shorthand"
+          }
+        }
+      ]
+    }
+  ]
+}

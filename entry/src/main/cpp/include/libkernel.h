@@ -93,6 +93,10 @@ extern char* GetAssetAbsPath(char* relativePath);
 extern GoString GetMimeTypeByExt(GoString ext);
 extern void SetTimezone(GoString container, GoString appDir, GoString timezoneID);
 extern void DisableFeature(char* feature);
+extern GoString FilepathBase(GoString path);
+extern GoString FilterUploadFileName(GoString name);
+extern GoString AssetName(GoString name);
+extern GoString HTML2Markdown(GoString html);
 extern void Unzip(char* zipFilePath, char* destination);
 extern void Exit(void);
 

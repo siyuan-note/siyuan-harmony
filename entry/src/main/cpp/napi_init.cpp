@@ -144,6 +144,98 @@ static napi_value Exit0(napi_env env, napi_callback_info info) {
     return result;
 }
 
+static napi_value Html2Markdown0(napi_env env, napi_callback_info info) {
+    napi_value result;
+
+    size_t argc = 1;
+    napi_value args[1] = {nullptr};
+    napi_get_cb_info(env, info, &argc, args, nullptr, nullptr);
+    GoString html = {value2String(env, args[0]), 0};
+    html.n = strlen(html.p);
+
+    std::promise<GoString> promise;
+    std::future<GoString> future = promise.get_future();
+    std::thread t([&promise, html]() {
+        GoString md = HTML2Markdown(html);
+        promise.set_value(md);
+    });
+    t.join();
+
+    GoString md = future.get();
+    napi_create_string_utf8(env, md.p, md.n, &result);
+
+    return result;
+}
+
+static napi_value FilepathBase0(napi_env env, napi_callback_info info) {
+    napi_value result;
+
+    size_t argc = 1;
+    napi_value args[1] = {nullptr};
+    napi_get_cb_info(env, info, &argc, args, nullptr, nullptr);
+    GoString path = {value2String(env, args[0]), 0};
+    path.n = strlen(path.p);
+
+    std::promise<GoString> promise;
+    std::future<GoString> future = promise.get_future();
+    std::thread t([&promise, path]() {
+        GoString base = FilepathBase(path);
+        promise.set_value(base);
+    });
+    t.join();
+
+    GoString base = future.get();
+    napi_create_string_utf8(env, base.p, base.n, &result);
+
+    return result;
+}
+
+static napi_value FilterUploadFileName0(napi_env env, napi_callback_info info) {
+    napi_value result;
+
+    size_t argc = 1;
+    napi_value args[1] = {nullptr};
+    napi_get_cb_info(env, info, &argc, args, nullptr, nullptr);
+    GoString name = {value2String(env, args[0]), 0};
+    name.n = strlen(name.p);
+
+    std::promise<GoString> promise;
+    std::future<GoString> future = promise.get_future();
+    std::thread t([&promise, name]() {
+        GoString filtered = FilterUploadFileName(name);
+        promise.set_value(filtered);
+    });
+    t.join();
+
+    GoString filtered = future.get();
+    napi_create_string_utf8(env, filtered.p, filtered.n, &result);
+
+    return result;
+}
+
+static napi_value AssetName0(napi_env env, napi_callback_info info) {
+    napi_value result;
+
+    size_t argc = 1;
+    napi_value args[1] = {nullptr};
+    napi_get_cb_info(env, info, &argc, args, nullptr, nullptr);
+    GoString name = {value2String(env, args[0]), 0};
+    name.n = strlen(name.p);
+
+    std::promise<GoString> promise;
+    std::future<GoString> future = promise.get_future();
+    std::thread t([&promise, name]() {
+        GoString asset = AssetName(name);
+        promise.set_value(asset);
+    });
+    t.join();
+
+    GoString asset = future.get();
+    napi_create_string_utf8(env, asset.p, asset.n, &result);
+
+    return result;
+}
+
 EXTERN_C_START
 static napi_value Init(napi_env env, napi_value exports) {
     napi_property_descriptor desc[] = {
@@ -155,6 +247,10 @@ static napi_value Init(napi_env env, napi_value exports) {
         {"getCurrentWorkspacePath", nullptr, GetCurrentWorkspacePath0, nullptr, nullptr, nullptr, napi_default,
          nullptr},
         {"exit", nullptr, Exit0, nullptr, nullptr, nullptr, napi_default, nullptr},
+        {"html2Markdown", nullptr, Html2Markdown0, nullptr, nullptr, nullptr, napi_default, nullptr},
+        {"filepathBase", nullptr, FilepathBase0, nullptr, nullptr, nullptr, napi_default, nullptr},
+        {"filterUploadFileName", nullptr, FilterUploadFileName0, nullptr, nullptr, nullptr, napi_default, nullptr},
+        {"assetName", nullptr, AssetName0, nullptr, nullptr, nullptr, napi_default, nullptr},
     };
     napi_define_properties(env, exports, sizeof(desc) / sizeof(desc[0]), desc);
     return exports;

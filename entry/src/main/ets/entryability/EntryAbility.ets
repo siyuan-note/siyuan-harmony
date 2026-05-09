@@ -33,6 +33,12 @@ export default class EntryAbility extends UIAbility {
   onCreate(want: Want, launchParam: AbilityConstant.LaunchParam): void {
     hilog.info(0x0000, "siyuan", 'ability onCreate [launchParam=' + JSON.stringify(launchParam) + "]");
     AppStorage.setOrCreate('abilityContext', this.context);
+    AppStorage.setOrCreate('shorthandWant', want);
+  }
+
+  onNewWant(want: Want, launchParam: AbilityConstant.LaunchParam): void {
+    hilog.info(0x0000, 'siyuan', 'ability onNewWant');
+    AppStorage.setOrCreate('shorthandWant', want);
   }
 
   onDestroy(): void {
@@ -53,7 +59,13 @@ export default class EntryAbility extends UIAbility {
 
     await Utils.initAppearance(this);
 
-    if (Utils.isFirstRun(this)) {
+    if ('ohos.want.action.sendData' === this.launchWant?.action) {
+      hilog.info(0x0000, "siyuan", "loading shorthand from share");
+      windowStage.loadContent("pages/Shorthand");
+    } else if ('shortcut' === (this.launchWant?.parameters as Record<string, Object>)?.type) {
+      hilog.info(0x0000, "siyuan", "loading shorthand from shortcut");
+      windowStage.loadContent("pages/Shorthand");
+    } else if (Utils.isFirstRun(this)) {
       hilog.info(0x0000, "siyuan", "loading agreement");
       windowStage.loadContent("pages/Agreement");
     } else {

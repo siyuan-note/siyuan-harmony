@@ -43,6 +43,18 @@
     {
       "name": "and",
       "value": "和"
+    },
+    {
+      "name": "shorthand_label",
+      "value": "Flash Shorthand"
+    },
+    {
+      "name": "shorthand_hint",
+      "value": "Enter text and submit. Content will be saved to Settings - Document - Default shorthand save path"
+    },
+    {
+      "name": "submit",
+      "value": "Submit"
     }
   ]
 }

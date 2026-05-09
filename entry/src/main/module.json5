@@ -31,12 +31,46 @@
             "actions": [
               "action.system.home"
             ]
+          },
+          {
+            "actions": [
+              "ohos.want.action.sendData"
+            ],
+            "entities": [
+              "entity.system.default"
+            ],
+            "uris": [
+              {
+                "type": "text/plain"
+              },
+              {
+                "type": "image/*"
+              },
+              {
+                "type": "video/*"
+              },
+              {
+                "type": "audio/*"
+              },
+              {
+                "type": "application/*"
+              },
+              {
+                "type": "*/*"
+              }
+            ]
           }
         ],
         "backgroundModes": [
           "dataTransfer"
         ],
-        "orientation": "auto_rotation_restricted"
+        "orientation": "auto_rotation_restricted",
+        "metadata": [
+          {
+            "name": "ohos.ability.shortcuts",
+            "resource": "$profile:shortcuts_config"
+          }
+        ]
       }
     ],
     "extensionAbilities": [

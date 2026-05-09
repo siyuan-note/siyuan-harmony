@@ -43,6 +43,18 @@
     {
       "name": "and",
       "value": "和"
+    },
+    {
+      "name": "shorthand_label",
+      "value": "闪念速记"
+    },
+    {
+      "name": "shorthand_hint",
+      "value": "请输入文本，提交后内容将被保存到 设置 - 文档 - 新建闪念速记的默认存放路径 下"
+    },
+    {
+      "name": "submit",
+      "value": "提交"
     }
   ]
 }
