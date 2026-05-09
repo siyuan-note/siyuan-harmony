@@ -17,10 +17,9 @@
  */
 
 import { hilog } from '@kit.PerformanceAnalysisKit';
-import { Want } from '@kit.AbilityKit';
+import { Want, common } from '@kit.AbilityKit';
 import { fileIo as fs } from '@kit.CoreFileKit';
 import napi from 'libentry.so';
-import { Utils } from './Utils';
 
 /**
  * 闪念速记页面。
@@ -36,8 +35,6 @@ struct Shorthand {
   @State submitEnabled: boolean = false;
 
   aboutToAppear(): void {
-    Utils.setUIContext(this.getUIContext());
-
     // 处理分享过来的内容
     const want = AppStorage.get<Want>('shorthandWant');
     if (want) {
@@ -82,7 +79,7 @@ struct Shorthand {
   }
 
   private async handleFileShare(uriList: string[], type: string): Promise<void> {
-    const context = Utils.getContext();
+    const context = AppStorage.get<common.UIAbilityContext>('shorthandContext')!;
     const workspaceBaseDir = context.filesDir + '/workspaces';
     const shorthandsDir = workspaceBaseDir + '/home/.config/siyuan/shortcuts/shorthands/';
     const assetsDir = shorthandsDir + 'assets/';
@@ -130,7 +127,7 @@ struct Shorthand {
       return;
     }
 
-    const context = Utils.getContext();
+    const context = AppStorage.get<common.UIAbilityContext>('shorthandContext')!;
     const workspaceBaseDir = context.filesDir + '/workspaces';
     const shorthandsDir = workspaceBaseDir + '/home/.config/siyuan/shortcuts/shorthands/';
 
@@ -151,7 +148,7 @@ struct Shorthand {
     }
 
     // 关闭速记页面
-    Utils.getUIContext().getRouter().back();
+    context?.terminateSelf();
   }
 
   build() {

@@ -31,7 +31,29 @@
             "actions": [
               "action.system.home"
             ]
-          },
+          }
+        ],
+        "backgroundModes": [
+          "dataTransfer"
+        ],
+        "orientation": "auto_rotation_restricted",
+        "metadata": [
+          {
+            "name": "ohos.ability.shortcuts",
+            "resource": "$profile:shortcuts_config"
+          }
+        ]
+      },
+      {
+        "name": "ShorthandAbility",
+        "srcEntry": "./ets/entryability/ShorthandAbility.ets",
+        "description": "$string:shorthand_label",
+        "icon": "$media:shorthand",
+        "label": "$string:shorthand_label",
+        "startWindowIcon": "$media:startIcon",
+        "startWindowBackground": "$color:white",
+        "exported": true,
+        "skills": [
           {
             "actions": [
               "ohos.want.action.sendData"
@@ -61,16 +83,7 @@
             ]
           }
         ],
-        "backgroundModes": [
-          "dataTransfer"
-        ],
-        "orientation": "auto_rotation_restricted",
-        "metadata": [
-          {
-            "name": "ohos.ability.shortcuts",
-            "resource": "$profile:shortcuts_config"
-          }
-        ]
+        "orientation": "auto_rotation_restricted"
       }
     ],
     "extensionAbilities": [

@@ -3,16 +3,12 @@
     {
       "shortcutId": "shorthand",
       "label": "$string:shorthand_label",
-      "icon": "$media:layered_image",
+      "icon": "$media:shorthand",
       "wants": [
         {
           "bundleName": "org.b3log.siyuan.ho",
           "moduleName": "entry",
-          "abilityName": "EntryAbility",
-          "parameters": {
-            "type": "shortcut",
-            "router": "pages/Shorthand"
-          }
+          "abilityName": "ShorthandAbility"
         }
       ]
     }
