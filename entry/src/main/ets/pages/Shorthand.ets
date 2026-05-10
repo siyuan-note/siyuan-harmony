@@ -17,8 +17,10 @@
  */
 
 import { hilog } from '@kit.PerformanceAnalysisKit';
-import { Want, common } from '@kit.AbilityKit';
-import { fileIo as fs } from '@kit.CoreFileKit';
+import { common, Want } from '@kit.AbilityKit';
+import { fileIo, fileIo as fs } from '@kit.CoreFileKit';
+import { systemShare } from '@kit.ShareKit';
+import { uniformTypeDescriptor as utd } from '@kit.ArkData';
 import napi from 'libentry.so';
 
 /**
@@ -42,84 +44,58 @@ struct Shorthand {
     }
   }
 
-  private handleWant(want: Want): void {
-    const action = want.action;
-    const type = (want.type) as string;
-    const parameters = want.parameters as Record<string, Object>;
-
-    if ('ohos.want.action.sendData' === action ||
-        'ohos.want.action.sendMultipleData' === action) {
-      if (type && type.startsWith('text/')) {
-        // 分享文本
-        const text = (parameters?.shareText as string) || (want.uri as string);
-        if (text) {
-          this.inputText = text;
-          this.submitEnabled = text.trim().length > 0;
-        }
-      } else if (type && (type.startsWith('image/') ||
-        type.startsWith('video/') ||
-        type.startsWith('audio/') ||
-        type.startsWith('application/'))) {
-        // 分享文件
-        const fileUriList = parameters?.fileUriList as string[];
-        if (fileUriList && fileUriList.length > 0) {
-          this.handleFileShare(fileUriList, type);
-        }
-      }
-    }
-  }
-
-  private getPathFromFileUri(uri: string): string {
-    // 鸿蒙文件 URI 格式: file://<bundleName>/<realPath>
-    // 取 bundleName 之后的部分作为真实路径
-    const idx = uri.indexOf('/', 7); // 跳过 "file://"
-    if (idx >= 0) {
-      return uri.substring(idx);
-    }
-    return uri;
-  }
-
-  private async handleFileShare(uriList: string[], type: string): Promise<void> {
-    const context = AppStorage.get<common.UIAbilityContext>('shorthandContext')!;
-    const workspaceBaseDir = context.filesDir + '/workspaces';
-    const shorthandsDir = workspaceBaseDir + '/home/.config/siyuan/shortcuts/shorthands/';
-    const assetsDir = shorthandsDir + 'assets/';
-
+  private async handleWant(want: Want) {
     try {
-      fs.mkdirSync(shorthandsDir, true);
-      fs.mkdirSync(assetsDir, true);
-    } catch (e) {
-      hilog.error(0x0000, 'siyuan', 'create shorthands dir failed: ' + e);
-    }
-
-    for (const uri of uriList) {
-      try {
-        const filePath = this.getPathFromFileUri(uri);
-        if (!filePath) {
-          continue;
-        }
-        let baseName = napi.filepathBase(filePath);
-        baseName = napi.filterUploadFileName(baseName);
-        const fileName = napi.assetName(baseName);
-        const destPath = assetsDir + fileName;
-
-        // 复制文件
-        fs.copyFileSync(filePath, destPath);
-
-        let content = '';
-        if (type.startsWith('image/')) {
-          content = '![' + baseName + '](assets/' + fileName + ')';
+      let shareData = await systemShare.getSharedData(want)
+      let records = shareData.getRecords()
+      for (const record of records) {
+        if (utd.UniformDataType.HTML == record.utd) {
+          const md = napi.html2Markdown(record.content);
+          this.inputText += md;
+        } else if (utd.UniformDataType.TEXT == record.utd) {
+          this.inputText += record.content
         } else {
-          content = '[' + baseName + '](assets/' + fileName + ')';
+          this.handleFileRecord(record);
         }
-        content += '\n\n';
-        this.inputText += content;
-      } catch (e) {
-        hilog.error(0x0000, 'siyuan', 'copy shared file failed: ' + e);
       }
+      this.submitEnabled = this.inputText.trim().length > 0;
+    } catch (error) {
+      hilog.error(0x0000, 'siyuan', 'handle share failed: ' + error);
     }
+  }
 
-    this.submitEnabled = this.inputText.trim().length > 0;
+  private async handleFileRecord(record: systemShare.SharedRecord) {
+    try {
+      const context = AppStorage.get<common.UIAbilityContext>('shorthandContext')!;
+      const workspaceBaseDir = context.filesDir + '/workspaces';
+      const shorthandsDir = workspaceBaseDir + '/home/.config/siyuan/shortcuts/shorthands/';
+      const assetsDir = shorthandsDir + 'assets/';
+
+      try {
+        fs.mkdirSync(shorthandsDir, true);
+        fs.mkdirSync(assetsDir, true);
+      } catch (e) {
+        // ignore File exists
+      }
+
+      const file = fileIo.openSync(record.uri, fileIo.OpenMode.READ_ONLY);
+      let baseName = record.title
+      baseName = napi.filterUploadFileName(baseName);
+      const fileName = napi.assetName(baseName);
+      const destPath = assetsDir + fileName;
+      const outFile = fileIo.openSync(destPath, fileIo.OpenMode.READ_WRITE | fileIo.OpenMode.CREATE);
+      fileIo.copyFileSync(file.fd, outFile.fd);
+      fileIo.closeSync(file);
+      fileIo.closeSync(outFile);
+
+      if (utd.UniformDataType.IMAGE == record.utd) {
+        this.inputText += '![' + baseName + '](assets/' + fileName + ')\n\n';
+      } else {
+        this.inputText += '[' + baseName + '](assets/' + fileName + ')\n\n';
+      }
+    } catch (e) {
+      hilog.error(0x0000, 'siyuan', 'handle file record failed: ' + e);
+    }
   }
 
   private onSubmit(): void {
@@ -135,7 +111,7 @@ struct Shorthand {
     try {
       fs.mkdirSync(shorthandsDir, true);
     } catch (e) {
-      hilog.error(0x0000, 'siyuan', 'create shorthands dir failed: ' + e);
+      // ignore File exists
     }
 
     const now = Date.now();

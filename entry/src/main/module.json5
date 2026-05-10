@@ -42,7 +42,7 @@
             "name": "ohos.ability.shortcuts",
             "resource": "$profile:shortcuts_config"
           }
-        ]
+        ],
       },
       {
         "name": "ShorthandAbility",
@@ -56,17 +56,19 @@
         "skills": [
           {
             "actions": [
-              "ohos.want.action.sendData",
-              "ohos.want.action.sendMultipleData"
-            ],
-            "entities": [
-              "entity.system.default"
+              "ohos.want.action.sendData"
             ],
             "uris": [
               {
                 "scheme": "file",
-                "type": "*/*"
+                "utd": "general.image",
+                "maxFileSupported": 7
               },
+              {
+                "scheme": "file",
+                "utd": "general.text",
+                "maxFileSupported": 7
+              }
             ]
           }
         ],
