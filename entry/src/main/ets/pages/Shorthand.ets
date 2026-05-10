@@ -83,12 +83,24 @@ struct Shorthand {
 
   build() {
     Column() {
-      Button($r('app.string.submit'))
-        .enabled(this.submitEnabled)
-        .width('100%')
-        .onClick(() => {
-          this.onSubmit();
-        })
+      Row() {
+        Text($r('app.string.shorthand_label'))
+          .fontSize(18)
+          .fontWeight(FontWeight.Bold)
+          .layoutWeight(1)
+
+        Button($r('app.string.submit'))
+          .enabled(this.submitEnabled)
+          .fontSize(14)
+          .onClick(() => {
+            this.onSubmit();
+          })
+      }
+      .width('100%')
+      .height(56)
+      .padding({ left: 16, right: 8 })
+
+      Divider()
 
       TextArea({
         text: this.inputText,
