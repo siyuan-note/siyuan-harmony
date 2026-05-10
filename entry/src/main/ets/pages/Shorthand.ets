@@ -49,11 +49,14 @@ struct Shorthand {
       .then((data: systemShare.SharedData) => {
         data.getRecords().forEach((record: systemShare.SharedRecord) => {
           if (utd.UniformDataType.HTML == record.utd) {
+            hilog.error(0x0000, "siyuan", "handle utd html");
             const md = napi.html2Markdown(record.content);
             this.inputText += md;
           } else if (utd.UniformDataType.TEXT == record.utd) {
+            hilog.error(0x0000, "siyuan", "handle utd text");
             this.inputText += record.content
           } else {
+            hilog.error(0x0000, "siyuan", "handle utd file " + JSON.stringify(record));
             this.handleFileRecord(record);
           }
         });
@@ -83,11 +86,17 @@ struct Shorthand {
         // ignore File exists
       }
 
+      hilog.error(0x0000, "siyuan", "openSync");
       const file = fileIo.openSync(record.uri, fileIo.OpenMode.READ_ONLY);
-      let baseName = record.title
+      hilog.error(0x0000, "siyuan", "file " + JSON.stringify(file));
+      let baseName = napi.filepathBase(record.uri);
+      hilog.error(0x0000, "siyuan", "baseName1 " + baseName);
       baseName = napi.filterUploadFileName(baseName);
+      hilog.error(0x0000, "siyuan", "baseName2 " + baseName);
       const fileName = napi.assetName(baseName);
+      hilog.error(0x0000, "siyuan", "fileName " + fileName);
       const destPath = assetsDir + fileName;
+      hilog.error(0x0000, "siyuan", "destPath " + destPath);
       const outFile = fileIo.openSync(destPath, fileIo.OpenMode.READ_WRITE | fileIo.OpenMode.CREATE);
       fileIo.copyFileSync(file.fd, outFile.fd);
       fileIo.closeSync(file);
