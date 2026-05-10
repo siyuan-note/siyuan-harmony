@@ -30,9 +30,26 @@ import { fileIo as fs } from '@kit.CoreFileKit';
 @Entry
 @Component
 struct Shorthand {
-  @StorageLink('shareInput') shareInput: string = '';
+  @StorageProp('shareInput') @Watch('onShareInputChange') shareInputProp: string = '';
   @State inputText: string = '';
   @State submitEnabled: boolean = false;
+
+  aboutToAppear(): void {
+    const shareInput = AppStorage.get("shareInput") as string ?? '';
+    if (shareInput) {
+      this.inputText += '\n\n' + shareInput;
+      this.inputText = this.inputText.trim();
+      this.submitEnabled = this.inputText.trim().length > 0;
+    }
+  }
+
+  onShareInputChange(): void {
+    if (this.shareInputProp) {
+      this.inputText += '\n\n' + this.shareInputProp;
+      this.inputText = this.inputText.trim();
+      this.submitEnabled = this.inputText.trim().length > 0;
+    }
+  }
 
   private onSubmit(): void {
     const text = this.inputText.trim();
@@ -88,13 +105,5 @@ struct Shorthand {
     }
     .width('100%')
     .height('100%')
-    .onAppear(()=>{
-      const shareInput = AppStorage.get("shareInput") as string ?? '';
-      if (shareInput) {
-        this.inputText += '\n\n' + shareInput;
-        this.inputText = this.inputText.trim();
-        this.submitEnabled = this.inputText.trim().length > 0;
-      }
-    })
   }
 }
