@@ -22,6 +22,8 @@ import { fileIo, fileIo as fs } from '@kit.CoreFileKit';
 import { systemShare } from '@kit.ShareKit';
 import { uniformTypeDescriptor as utd } from '@kit.ArkData';
 import napi from 'libentry.so';
+import { BusinessError } from '@kit.BasicServicesKit';
+import { Utils } from './Utils';
 
 /**
  * 闪念速记页面。
@@ -37,36 +39,35 @@ struct Shorthand {
   @State submitEnabled: boolean = false;
 
   aboutToAppear(): void {
-    // 处理分享过来的内容
     const want = AppStorage.get<Want>('shorthandWant');
     if (want) {
       this.handleWant(want);
     }
   }
 
-  private async handleWant(want: Want) {
-    try {
-      let shareData = await systemShare.getSharedData(want)
-      let records = shareData.getRecords()
-      for (const record of records) {
-        if (utd.UniformDataType.HTML == record.utd) {
-          const md = napi.html2Markdown(record.content);
-          this.inputText += md;
-        } else if (utd.UniformDataType.TEXT == record.utd) {
-          this.inputText += record.content
-        } else {
-          this.handleFileRecord(record);
-        }
-      }
-      this.submitEnabled = this.inputText.trim().length > 0;
-    } catch (error) {
-      hilog.error(0x0000, 'siyuan', 'handle share failed: ' + error);
-    }
+  private handleWant(want: Want) {
+    systemShare.getSharedData(want)
+      .then((data: systemShare.SharedData) => {
+        data.getRecords().forEach((record: systemShare.SharedRecord) => {
+          if (utd.UniformDataType.HTML == record.utd) {
+            const md = napi.html2Markdown(record.content);
+            this.inputText += md;
+          } else if (utd.UniformDataType.TEXT == record.utd) {
+            this.inputText += record.content
+          } else {
+            this.handleFileRecord(record);
+          }
+        });
+        this.submitEnabled = this.inputText.trim().length > 0;
+      })
+      .catch((error: BusinessError) => {
+        hilog.error(0x0000, 'siyuan', 'handle share failed: ' + error);
+      });
   }
 
   private async handleFileRecord(record: systemShare.SharedRecord) {
     try {
-      const context = AppStorage.get<common.UIAbilityContext>('shorthandContext')!;
+      const context = Utils.getContext();
       const workspaceBaseDir = context.filesDir + '/workspaces';
       const shorthandsDir = workspaceBaseDir + '/home/.config/siyuan/shortcuts/shorthands/';
       const assetsDir = shorthandsDir + 'assets/';
