@@ -67,6 +67,11 @@ struct Shorthand {
   private async handleFileRecord(record: systemShare.SharedRecord) {
     try {
       const context = AppStorage.get<Context>('shorthandContext');
+      if (!context) {
+        hilog.error(0x0000, 'siyuan', 'handle file record failed: no context');
+        return;
+      }
+
       const workspaceBaseDir = context.filesDir + '/workspaces';
       const shorthandsDir = workspaceBaseDir + '/home/.config/siyuan/shortcuts/shorthands/';
       const assetsDir = shorthandsDir + 'assets/';
