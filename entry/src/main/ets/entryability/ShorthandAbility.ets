@@ -48,21 +48,18 @@ export default class ShorthandAbility extends UIAbility {
       const data = await systemShare.getSharedData(want);
       const records = data.getRecords();
       let shareInput = '';
-      records.forEach((record: systemShare.SharedRecord) => {
+      for (const record of records) {
         if (utd.UniformDataType.HTML == record.utd) {
-          hilog.error(0x0000, "siyuan", "handle utd html");
-          const text = napi.html2Markdown(record.content);
-          shareInput = text;
+          const md = napi.html2Markdown(record.content);
+          shareInput = md;
         } else if (utd.UniformDataType.TEXT == record.utd) {
-          hilog.error(0x0000, "siyuan", "handle utd text");
           shareInput = record.content ?? "";
         } else {
-          hilog.error(0x0000, "siyuan", "handle utd file " + JSON.stringify(record));
           const text = this.handleFileRecord(record);
           shareInput = text;
         }
-      });
-      AppStorage.SetOrCreate("shareInput", shareInput);
+      }
+      AppStorage.setOrCreate("shareInput", shareInput);
     } catch (e) {
       hilog.error(0x0000, 'siyuan', 'handle want failed: ' + e);
     }
@@ -115,7 +112,7 @@ export default class ShorthandAbility extends UIAbility {
     hilog.info(0x0000, 'siyuan', 'ShorthandAbility onDestroy');
   }
 
-  onWindowStageCreate(windowStage: window.WindowStage): void {
+  async onWindowStageCreate(windowStage: window.WindowStage) {
     hilog.info(0x0000, 'siyuan', 'ShorthandAbility onWindowStageCreate');
 
     const wnd = windowStage.getMainWindowSync();

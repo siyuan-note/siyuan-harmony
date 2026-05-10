@@ -30,16 +30,9 @@ import { fileIo as fs } from '@kit.CoreFileKit';
 @Entry
 @Component
 struct Shorthand {
+  @StorageLink('shareInput') shareInput: string = '';
   @State inputText: string = '';
   @State submitEnabled: boolean = false;
-
-  aboutToAppear(): void {
-    const shareInput: string = AppStorage.Get('shareInput') ?? "";
-    if (shareInput) {
-      this.inputText += "\n\n" + shareInput;
-      this.inputText = this.inputText.trim();
-    }
-  }
 
   private onSubmit(): void {
     const text = this.inputText.trim();
@@ -67,7 +60,7 @@ struct Shorthand {
       hilog.error(0x0000, 'siyuan', 'write shorthand file failed: ' + e);
     }
 
-    // 关闭速记页面
+    this.inputText = "";
     context?.terminateSelf();
   }
 
@@ -95,5 +88,13 @@ struct Shorthand {
     }
     .width('100%')
     .height('100%')
+    .onAppear(()=>{
+      const shareInput = AppStorage.get("shareInput") as string ?? '';
+      if (shareInput) {
+        this.inputText += '\n\n' + shareInput;
+        this.inputText = this.inputText.trim();
+        this.submitEnabled = this.inputText.trim().length > 0;
+      }
+    })
   }
 }
