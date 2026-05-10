@@ -16,9 +16,13 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { AbilityConstant, UIAbility, Want } from '@kit.AbilityKit';
+import { AbilityConstant, UIAbility, Want, } from '@kit.AbilityKit';
 import { hilog } from '@kit.PerformanceAnalysisKit';
 import { window } from '@kit.ArkUI';
+import { systemShare } from '@kit.ShareKit';
+import { uniformTypeDescriptor as utd } from '@kit.ArkData';
+import napi from 'libentry.so';
+import { fileIo } from '@kit.CoreFileKit';
 
 /**
  * 闪念速记入口。
@@ -31,12 +35,80 @@ export default class ShorthandAbility extends UIAbility {
   onCreate(want: Want, launchParam: AbilityConstant.LaunchParam): void {
     hilog.info(0x0000, 'siyuan', 'ShorthandAbility onCreate');
     AppStorage.setOrCreate('shorthandContext', this.context);
-    AppStorage.setOrCreate('shorthandWant', want);
+    this.handleWant(want);
   }
 
   onNewWant(want: Want, launchParam: AbilityConstant.LaunchParam): void {
     hilog.info(0x0000, 'siyuan', 'ShorthandAbility onNewWant');
-    AppStorage.setOrCreate('shorthandWant', want);
+    this.handleWant(want);
+  }
+
+  private async handleWant(want: Want) {
+    try {
+      const data = await systemShare.getSharedData(want);
+      const records = data.getRecords();
+      let shareInput = '';
+      records.forEach((record: systemShare.SharedRecord) => {
+        if (utd.UniformDataType.HTML == record.utd) {
+          hilog.error(0x0000, "siyuan", "handle utd html");
+          const text = napi.html2Markdown(record.content);
+          shareInput = text;
+        } else if (utd.UniformDataType.TEXT == record.utd) {
+          hilog.error(0x0000, "siyuan", "handle utd text");
+          shareInput = record.content ?? "";
+        } else {
+          hilog.error(0x0000, "siyuan", "handle utd file " + JSON.stringify(record));
+          const text = this.handleFileRecord(record);
+          shareInput = text;
+        }
+      });
+      AppStorage.SetOrCreate("shareInput", shareInput);
+    } catch (e) {
+      hilog.error(0x0000, 'siyuan', 'handle want failed: ' + e);
+    }
+  }
+
+  private handleFileRecord(record: systemShare.SharedRecord): string {
+    try {
+      const context = AppStorage.get<Context>('shorthandContext');
+      if (!context) {
+        hilog.error(0x0000, 'siyuan', 'handle file record failed: no context');
+        return "";
+      }
+
+      const workspaceBaseDir = context.filesDir + '/workspaces';
+      const shorthandsDir = workspaceBaseDir + '/home/.config/siyuan/shortcuts/shorthands/';
+      const assetsDir = shorthandsDir + 'assets/';
+
+      try {
+        fileIo.mkdirSync(shorthandsDir, true);
+        fileIo.mkdirSync(assetsDir, true);
+      } catch (e) {
+        // ignore File exists
+      }
+
+      const file = fileIo.openSync(record.uri, fileIo.OpenMode.READ_ONLY);
+      let baseName = napi.filepathBase(record.uri);
+      baseName = napi.filterUploadFileName(baseName);
+      const fileName = napi.assetName(baseName);
+      const destPath = assetsDir + fileName;
+      const outFile =
+        fileIo.openSync(destPath, fileIo.OpenMode.READ_WRITE | fileIo.OpenMode.CREATE | fileIo.OpenMode.TRUNC);
+      fileIo.copyFileSync(file.fd, outFile.fd);
+      fileIo.closeSync(file);
+      fileIo.closeSync(outFile);
+
+      let ret = ""
+      if (utd.UniformDataType.IMAGE == record.utd) {
+        ret += '![' + baseName + '](assets/' + fileName + ')\n\n';
+      } else {
+        ret += '[' + baseName + '](assets/' + fileName + ')\n\n';
+      }
+      return ret;
+    } catch (e) {
+      hilog.error(0x0000, 'siyuan', 'handle file record failed: ' + e);
+      return "";
+    }
   }
 
   onDestroy(): void {

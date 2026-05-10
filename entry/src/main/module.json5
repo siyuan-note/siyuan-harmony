@@ -63,17 +63,20 @@
               {
                 "scheme": "file",
                 "utd": "general.image",
-                "maxFileSupported": 7
+                "maxFileSupported": 7,
+                "host": "*"
               },
               {
                 "scheme": "file",
                 "utd": "general.text",
-                "maxFileSupported": 7
+                "maxFileSupported": 7,
+                "host": "*"
               },
               {
                 "scheme": "file",
                 "utd": "general.object",
-                "maxFileSupported": 7
+                "maxFileSupported": 7,
+                "host": "*"
               }
             ]
           }

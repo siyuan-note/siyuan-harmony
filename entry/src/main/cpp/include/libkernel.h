@@ -84,19 +84,19 @@ extern "C" {
 
 extern void StartKernelFast(char* container, char* appDir, char* workspaceBaseDir, char* localIPs);
 extern void StartKernel(char* container, char* appDir, char* workspaceBaseDir, char* timezoneID, char* localIPs, char* lang, char* osVer);
-extern GoString Language(GoInt num);
-extern void ShowMsg(GoString msg, GoInt timeout);
+extern char* Language(GoInt num);
+extern void ShowMsg(char* msg, GoInt timeout);
 extern GoUint8 IsHttpServing(void);
 extern void SetHttpServerPort(GoInt port);
 extern char* GetCurrentWorkspacePath(void);
 extern char* GetAssetAbsPath(char* relativePath);
-extern GoString GetMimeTypeByExt(GoString ext);
-extern void SetTimezone(GoString container, GoString appDir, GoString timezoneID);
+extern char* GetMimeTypeByExt(char* ext);
+extern void SetTimezone(char* container, char* appDir, char* timezoneID);
 extern void DisableFeature(char* feature);
-extern GoString FilepathBase(GoString path);
-extern GoString FilterUploadFileName(GoString name);
-extern GoString AssetName(GoString name);
-extern GoString HTML2Markdown(GoString html);
+extern char* FilepathBase(char* path);
+extern char* FilterUploadFileName(char* name);
+extern char* AssetName(char* name);
+extern char* HTML2Markdown(char* html);
 extern void Unzip(char* zipFilePath, char* destination);
 extern void Exit(void);
 
