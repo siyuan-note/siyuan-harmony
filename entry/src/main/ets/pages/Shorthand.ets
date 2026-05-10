@@ -23,7 +23,6 @@ import { systemShare } from '@kit.ShareKit';
 import { uniformTypeDescriptor as utd } from '@kit.ArkData';
 import napi from 'libentry.so';
 import { BusinessError } from '@kit.BasicServicesKit';
-import { Utils } from './Utils';
 
 /**
  * 闪念速记页面。
@@ -67,7 +66,7 @@ struct Shorthand {
 
   private async handleFileRecord(record: systemShare.SharedRecord) {
     try {
-      const context = Utils.getContext();
+      const context = AppStorage.get<Context>('shorthandContext');
       const workspaceBaseDir = context.filesDir + '/workspaces';
       const shorthandsDir = workspaceBaseDir + '/home/.config/siyuan/shortcuts/shorthands/';
       const assetsDir = shorthandsDir + 'assets/';
