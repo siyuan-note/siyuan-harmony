@@ -291,7 +291,7 @@ export struct JSHarmony {
       } finally {
         if (-1 !== srcFd) {
           try {
-            fs.closeSync({ fd: srcFd } as fs.File);
+            fs.closeSync(srcFd);
           } catch (closeErr) {
             hilog.error(0x0000, "siyuan", "saveExportFile close failed: " + closeErr);
           }
