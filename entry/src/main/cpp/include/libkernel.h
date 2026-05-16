@@ -98,7 +98,7 @@ extern char* FilterUploadFileName(char* name);
 extern char* AssetName(char* name);
 extern char* HTML2Markdown(char* html);
 extern void Unzip(char* zipFilePath, char* destination);
-extern char* ReadExportFile(char* exportPath);
+extern char* GetExportFilePath(char* exportPath);
 extern void Exit(void);
 
 #ifdef __cplusplus

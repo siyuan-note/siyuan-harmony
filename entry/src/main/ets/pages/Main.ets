@@ -88,9 +88,6 @@ struct Main {
               "setWebViewFocusable",
               "sendNotification",
               "cancelNotification",
-              "readExportFile",
-              "language",
-              "showMsg",
             ]
           );
 

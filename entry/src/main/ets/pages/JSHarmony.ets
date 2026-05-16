@@ -24,7 +24,6 @@ import { emitter, pasteboard } from '@kit.BasicServicesKit';
 import napi from 'libentry.so';
 import { Want, WantAgent, wantAgent, wantConstant } from '@kit.AbilityKit';
 import { fileUri, fileIo as fs, picker } from '@kit.CoreFileKit';
-import { util } from '@kit.ArkTS';
 import { notificationManager } from '@kit.NotificationKit';
 import { reminderAgentManager } from '@kit.BackgroundTasksKit';
 
@@ -248,42 +247,55 @@ export struct JSHarmony {
     }
 
     try {
-      const base64 = napi.readExportFile(url);
-      if (!base64) {
+      const srcPath = napi.getExportFilePath(url);
+      if (!srcPath) {
         napi.showMsg(napi.language(291), 5000);
         return;
       }
 
-      const base64Helper = new util.Base64Helper();
-      const uint8Arr = base64Helper.decodeSync(base64);
-      const data = uint8Arr.buffer as ArrayBuffer;
-
-      if (!data || data.byteLength === 0) {
-        napi.showMsg(napi.language(291), 5000);
-        return;
-      }
-
+      let srcFd: number = -1;
       try {
+        srcFd = fs.openSync(srcPath, fs.OpenMode.READ_ONLY).fd;
+        const fileSize = fs.statSync(srcPath).size;
+        if (fileSize <= 0) {
+          napi.showMsg(napi.language(291), 5000);
+          return;
+        }
+
         const documentSaveOptions = new picker.DocumentSaveOptions();
         documentSaveOptions.newFileNames = [fileName];
         const documentPicker = new picker.DocumentViewPicker();
         const result = await documentPicker.save(documentSaveOptions);
-        if (result && result.length > 0) {
-          const editUri = result[0];
-          const file = fs.openSync(editUri, fs.OpenMode.CREATE | fs.OpenMode.READ_WRITE | fs.OpenMode.TRUNC);
-          fs.writeSync(file.fd, data);
-          fs.closeSync(file);
-          napi.showMsg(napi.language(289), 5000);
-        } else {
+        if (!result || result.length === 0) {
           hilog.info(0x0000, "siyuan", "User cancelled file save");
+          return;
         }
-      } catch (e) {
-        const err = e as BusinessError;
-        hilog.error(0x0000, "siyuan", `saveExportFile write failed: Code ${err.code}, Msg ${err.message}`);
-        napi.showMsg(napi.language(293), 5000);
+
+        const editUri = result[0];
+        const dstFile = fs.openSync(editUri, fs.OpenMode.CREATE | fs.OpenMode.READ_WRITE | fs.OpenMode.TRUNC);
+        const bufSize = 65536;
+        const readBuf = new ArrayBuffer(bufSize);
+        let offset = 0;
+        while (offset < fileSize) {
+          const chunkSize = Math.min(bufSize, fileSize - offset);
+          const bytesRead = fs.readSync(srcFd, readBuf, { offset: offset, length: chunkSize });
+          if (bytesRead <= 0) {
+            break;
+          }
+          const toWrite = bytesRead < bufSize ? readBuf.slice(0, bytesRead) : readBuf;
+          fs.writeSync(dstFile.fd, toWrite);
+          offset += bytesRead;
+        }
+        fs.closeSync(dstFile);
+        napi.showMsg(napi.language(289), 5000);
+      } finally {
+        if (-1 !== srcFd) {
+          fs.closeSync({ fd: srcFd } as fs.File);
+        }
       }
     } catch (e) {
-      hilog.error(0x0000, "siyuan", "saveExportFile read failed: " + e);
+      const err = e as BusinessError;
+      hilog.error(0x0000, "siyuan", "saveExportFile failed: " + e);
       napi.showMsg(napi.language(290), 5000);
     }
   }

@@ -232,7 +232,7 @@ static napi_value AssetName0(napi_env env, napi_callback_info info) {
     return result;
 }
 
-static napi_value ReadExportFile0(napi_env env, napi_callback_info info) {
+static napi_value GetExportFilePath0(napi_env env, napi_callback_info info) {
     napi_value result;
 
     size_t argc = 1;
@@ -243,14 +243,14 @@ static napi_value ReadExportFile0(napi_env env, napi_callback_info info) {
     std::promise<char *> promise;
     std::future<char *> future = promise.get_future();
     std::thread t([&promise, exportPath]() {
-        char *base64 = ReadExportFile(exportPath);
-        promise.set_value(base64);
+        char *absPath = GetExportFilePath(exportPath);
+        promise.set_value(absPath);
     });
     t.join();
 
-    char *base64 = future.get();
-    if (base64) {
-        napi_create_string_utf8(env, base64, strlen(base64), &result);
+    char *absPath = future.get();
+    if (absPath) {
+        napi_create_string_utf8(env, absPath, strlen(absPath), &result);
     } else {
         napi_get_undefined(env, &result);
     }
@@ -312,7 +312,7 @@ static napi_value Init(napi_env env, napi_value exports) {
         {"filepathBase", nullptr, FilepathBase0, nullptr, nullptr, nullptr, napi_default, nullptr},
         {"filterUploadFileName", nullptr, FilterUploadFileName0, nullptr, nullptr, nullptr, napi_default, nullptr},
         {"assetName", nullptr, AssetName0, nullptr, nullptr, nullptr, napi_default, nullptr},
-        {"readExportFile", nullptr, ReadExportFile0, nullptr, nullptr, nullptr, napi_default, nullptr},
+        {"getExportFilePath", nullptr, GetExportFilePath0, nullptr, nullptr, nullptr, napi_default, nullptr},
         {"language", nullptr, Language0, nullptr, nullptr, nullptr, napi_default, nullptr},
         {"showMsg", nullptr, ShowMsg0, nullptr, nullptr, nullptr, napi_default, nullptr},
     };
