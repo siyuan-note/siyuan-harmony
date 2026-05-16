@@ -24,10 +24,8 @@ import { emitter, pasteboard } from '@kit.BasicServicesKit';
 import napi from 'libentry.so';
 import { Want, WantAgent, wantAgent, wantConstant } from '@kit.AbilityKit';
 import { fileUri, fileIo as fs, picker } from '@kit.CoreFileKit';
-import { notificationManager } from '@kit.NotificationKit';
-import { reminderAgentManager } from '@kit.BackgroundTasksKit';
-import { http } from '@kit.NetworkKit';
 import { promptAction } from '@kit.ArkUI';
+import { util } from '@kit.ArkTS';
 
 /**
  * JavaScript 接口。
@@ -233,17 +231,12 @@ export struct JSHarmony {
     Utils.openByDefaultBrowser(url);
   }
 
-  saveExportFile(url: string) {
+  async saveExportFile(url: string) {
     if (!url) {
       return;
     }
 
-    let fullUrl = url;
-    if (fullUrl.startsWith("/")) {
-      fullUrl = "http://127.0.0.1:6806" + fullUrl;
-    }
-
-    let fileName = fullUrl.substring(fullUrl.lastIndexOf('/') + 1);
+    let fileName = url.substring(url.lastIndexOf('/') + 1);
     const queryIdx = fileName.indexOf('?');
     if (-1 !== queryIdx) {
       fileName = fileName.substring(0, queryIdx);
@@ -253,14 +246,17 @@ export struct JSHarmony {
       fileName = "export";
     }
 
-    const httpRequest = http.createHttp();
-    httpRequest.request(fullUrl, {
-      method: http.RequestMethod.GET,
-      expectDataType: http.HttpDataType.ARRAY_BUFFER,
-      connectTimeout: 5000,
-      readTimeout: 60000 * 10,
-    }).then(async (response) => { // 注意这里加了 async
-      const data = response.result as ArrayBuffer;
+    try {
+      const base64 = napi.readExportFile(url);
+      if (!base64) {
+        this.showToast("导出失败：文件不存在或为空 / Export failed: File not found or empty");
+        return;
+      }
+
+      const base64Helper = new util.Base64Helper();
+      const uint8Arr = base64Helper.decodeSync(base64);
+      const data = uint8Arr.buffer as ArrayBuffer;
+
       if (!data || data.byteLength === 0) {
         this.showToast("导出失败：数据为空 / Export failed: Empty data");
         return;
@@ -268,7 +264,7 @@ export struct JSHarmony {
 
       try {
         const documentSaveOptions = new picker.DocumentSaveOptions();
-        documentSaveOptions.newFileNames = [fileName]; // 推荐的文件名
+        documentSaveOptions.newFileNames = [fileName];
         const documentPicker = new picker.DocumentViewPicker();
         const result = await documentPicker.save(documentSaveOptions);
         if (result && result.length > 0) {
@@ -285,10 +281,10 @@ export struct JSHarmony {
         hilog.error(0x0000, "siyuan", `saveExportFile write failed: Code ${err.code}, Msg ${err.message}`);
         this.showToast("导出失败，无法写入文件 / Export failed");
       }
-    }).catch((e: BusinessError) => {
-      hilog.error(0x0000, "siyuan", "saveExportFile download failed: " + e);
-      this.showToast("网络请求失败 / Download failed");
-    });
+    } catch (e) {
+      hilog.error(0x0000, "siyuan", "saveExportFile read failed: " + e);
+      this.showToast("导出失败 / Export failed");
+    }
   }
 
   private showToast(message: string) {

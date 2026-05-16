@@ -232,6 +232,32 @@ static napi_value AssetName0(napi_env env, napi_callback_info info) {
     return result;
 }
 
+static napi_value ReadExportFile0(napi_env env, napi_callback_info info) {
+    napi_value result;
+
+    size_t argc = 1;
+    napi_value args[1] = {nullptr};
+    napi_get_cb_info(env, info, &argc, args, nullptr, nullptr);
+    char *exportPath = value2String(env, args[0]);
+
+    std::promise<char *> promise;
+    std::future<char *> future = promise.get_future();
+    std::thread t([&promise, exportPath]() {
+        char *base64 = ReadExportFile(exportPath);
+        promise.set_value(base64);
+    });
+    t.join();
+
+    char *base64 = future.get();
+    if (base64) {
+        napi_create_string_utf8(env, base64, strlen(base64), &result);
+    } else {
+        napi_get_undefined(env, &result);
+    }
+
+    return result;
+}
+
 EXTERN_C_START
 static napi_value Init(napi_env env, napi_value exports) {
     napi_property_descriptor desc[] = {
@@ -247,6 +273,7 @@ static napi_value Init(napi_env env, napi_value exports) {
         {"filepathBase", nullptr, FilepathBase0, nullptr, nullptr, nullptr, napi_default, nullptr},
         {"filterUploadFileName", nullptr, FilterUploadFileName0, nullptr, nullptr, nullptr, napi_default, nullptr},
         {"assetName", nullptr, AssetName0, nullptr, nullptr, nullptr, napi_default, nullptr},
+        {"readExportFile", nullptr, ReadExportFile0, nullptr, nullptr, nullptr, napi_default, nullptr},
     };
     napi_define_properties(env, exports, sizeof(desc) / sizeof(desc[0]), desc);
     return exports;
