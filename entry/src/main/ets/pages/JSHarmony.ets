@@ -290,11 +290,14 @@ export struct JSHarmony {
         napi.showMsg(napi.language(289), 5000);
       } finally {
         if (-1 !== srcFd) {
-          fs.closeSync({ fd: srcFd } as fs.File);
+          try {
+            fs.closeSync({ fd: srcFd } as fs.File);
+          } catch (closeErr) {
+            hilog.error(0x0000, "siyuan", "saveExportFile close failed: " + closeErr);
+          }
         }
       }
     } catch (e) {
-      const err = e as BusinessError;
       hilog.error(0x0000, "siyuan", "saveExportFile failed: " + e);
       napi.showMsg(napi.language(290), 5000);
     }
