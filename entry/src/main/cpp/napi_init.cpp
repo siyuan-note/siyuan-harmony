@@ -258,6 +258,45 @@ static napi_value ReadExportFile0(napi_env env, napi_callback_info info) {
     return result;
 }
 
+static napi_value Language0(napi_env env, napi_callback_info info) {
+    napi_value result;
+
+    size_t argc = 1;
+    napi_value args[1] = {nullptr};
+    napi_get_cb_info(env, info, &argc, args, nullptr, nullptr);
+    int32_t num;
+    napi_get_value_int32(env, args[0], &num);
+
+    std::promise<char *> promise;
+    std::future<char *> future = promise.get_future();
+    std::thread t([&promise, num]() {
+        char *msg = Language((GoInt)num);
+        promise.set_value(msg);
+    });
+    t.join();
+
+    char *msg = future.get();
+    napi_create_string_utf8(env, msg, strlen(msg), &result);
+
+    return result;
+}
+
+static napi_value ShowMsg0(napi_env env, napi_callback_info info) {
+    napi_value result;
+
+    size_t argc = 2;
+    napi_value args[2] = {nullptr, nullptr};
+    napi_get_cb_info(env, info, &argc, args, nullptr, nullptr);
+    char *msg = value2String(env, args[0]);
+    int32_t timeout;
+    napi_get_value_int32(env, args[1], &timeout);
+
+    std::thread t([msg, timeout]() { ShowMsg(msg, (GoInt)timeout); });
+    t.join();
+
+    return result;
+}
+
 EXTERN_C_START
 static napi_value Init(napi_env env, napi_value exports) {
     napi_property_descriptor desc[] = {
@@ -274,6 +313,8 @@ static napi_value Init(napi_env env, napi_value exports) {
         {"filterUploadFileName", nullptr, FilterUploadFileName0, nullptr, nullptr, nullptr, napi_default, nullptr},
         {"assetName", nullptr, AssetName0, nullptr, nullptr, nullptr, napi_default, nullptr},
         {"readExportFile", nullptr, ReadExportFile0, nullptr, nullptr, nullptr, napi_default, nullptr},
+        {"language", nullptr, Language0, nullptr, nullptr, nullptr, napi_default, nullptr},
+        {"showMsg", nullptr, ShowMsg0, nullptr, nullptr, nullptr, napi_default, nullptr},
     };
     napi_define_properties(env, exports, sizeof(desc) / sizeof(desc[0]), desc);
     return exports;

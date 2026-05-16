@@ -24,8 +24,9 @@ import { emitter, pasteboard } from '@kit.BasicServicesKit';
 import napi from 'libentry.so';
 import { Want, WantAgent, wantAgent, wantConstant } from '@kit.AbilityKit';
 import { fileUri, fileIo as fs, picker } from '@kit.CoreFileKit';
-import { promptAction } from '@kit.ArkUI';
 import { util } from '@kit.ArkTS';
+import { notificationManager } from '@kit.NotificationKit';
+import { reminderAgentManager } from '@kit.BackgroundTasksKit';
 
 /**
  * JavaScript 接口。
@@ -249,7 +250,7 @@ export struct JSHarmony {
     try {
       const base64 = napi.readExportFile(url);
       if (!base64) {
-        this.showToast("导出失败：文件不存在或为空 / Export failed: File not found or empty");
+        napi.showMsg(napi.language(291), 5000);
         return;
       }
 
@@ -258,7 +259,7 @@ export struct JSHarmony {
       const data = uint8Arr.buffer as ArrayBuffer;
 
       if (!data || data.byteLength === 0) {
-        this.showToast("导出失败：数据为空 / Export failed: Empty data");
+        napi.showMsg(napi.language(291), 5000);
         return;
       }
 
@@ -272,29 +273,18 @@ export struct JSHarmony {
           const file = fs.openSync(editUri, fs.OpenMode.CREATE | fs.OpenMode.READ_WRITE | fs.OpenMode.TRUNC);
           fs.writeSync(file.fd, data);
           fs.closeSync(file);
-          this.showToast("已导出文件: " + fileName);
+          napi.showMsg(napi.language(289), 5000);
         } else {
           hilog.info(0x0000, "siyuan", "User cancelled file save");
         }
       } catch (e) {
         const err = e as BusinessError;
         hilog.error(0x0000, "siyuan", `saveExportFile write failed: Code ${err.code}, Msg ${err.message}`);
-        this.showToast("导出失败，无法写入文件 / Export failed");
+        napi.showMsg(napi.language(293), 5000);
       }
     } catch (e) {
       hilog.error(0x0000, "siyuan", "saveExportFile read failed: " + e);
-      this.showToast("导出失败 / Export failed");
-    }
-  }
-
-  private showToast(message: string) {
-    try {
-      promptAction.showToast({
-        message: message,
-        duration: 2000
-      });
-    } catch (e) {
-      hilog.error(0x0000, "siyuan", "show toast failed: " + e);
+      napi.showMsg(napi.language(290), 5000);
     }
   }
 
