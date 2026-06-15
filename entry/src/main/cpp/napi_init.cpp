@@ -42,7 +42,7 @@ static napi_value StartKernel0(napi_env env, napi_callback_info info) {
     char *localIPs = value2String(env, args[2]);
     char *osVer = value2String(env, args[3]);
     std::thread t([appDir, workspaceBaseDir, localIPs, osVer]() {
-        StartKernel((char *)"harmony", appDir, workspaceBaseDir, (char *)"Asia/Shanghai", localIPs, (char *)"zh_CN",
+        StartKernel((char *)"harmony", appDir, workspaceBaseDir, (char *)"Asia/Shanghai", localIPs, (char *)"zh-CN",
                     osVer);
     });
     t.join();
