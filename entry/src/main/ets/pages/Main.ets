@@ -127,6 +127,12 @@ struct Main {
           }
           return false;
         })
+        .onTouch((event: TouchEvent) => {
+          // 手指抬起时通知前端，用于清除长按多选定时器
+          if (event.type === TouchType.Up) {
+            this.controller.runJavaScript("javascript:window.dispatchEvent(new Event('nativePhysicalTouchUp'))");
+          }
+        })
     }
     .width("100%")
     .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.BOTTOM]);
