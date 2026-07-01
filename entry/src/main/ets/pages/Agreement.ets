@@ -41,7 +41,7 @@ struct Agreement {
   build() {
     RelativeContainer() {
       Row({ space: 10 }) {
-        Image($r('app.media.app_icon')).width(60).height(60)
+        Image($r('app.media.foreground')).width(60).height(60)
         Column({ space: 5 }) {
           Text($r('app.string.app_name')).fontSize(22).fontColor($r('app.color.title_color'))
           Text($r('app.string.slogan')).fontSize(14).fontColor($r('app.color.other_color'))
