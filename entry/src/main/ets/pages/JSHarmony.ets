@@ -380,24 +380,14 @@ export struct JSHarmony {
   private parseColor(color: string): string {
     try {
       color = color.trim();
-      if (color.toLowerCase().includes("rgb")) {
-        const splitStr = color.substring(color.indexOf('(') + 1, color.indexOf(')'));
-        const splitString = splitStr.split(",");
-        const colorValues = splitString.map(value => parseInt(value.trim(), 10));
-        return `rgb(${colorValues[0]}, ${colorValues[1]}, ${colorValues[2]})`;
+      if (color.length !== 9 || color.charAt(0) !== '#') {
+        throw new Error("invalid color format");
       }
-      if (color.length < 7) {
-        // Convert 3-digit hex colors to 6-digit
-        color = color.replace(new RegExp("#([0-9a-fA-F])([0-9a-fA-F])([0-9a-fA-F])"), "#$1$1$2$2$3$3");
-      }
-      if (color.length === 9 && color.charAt(0) === '#') {
-        // Convert #RRGGBBAA to #AARRGGBB
-        color = "#" + color.substring(7, 9) + color.substring(1, 7);
-      }
-      return color;
+      // Convert #RRGGBBAA to #AARRGGBB
+      return "#" + color.substring(7, 9) + color.substring(1, 7);
     } catch (e) {
       hilog.error(0x0000, "siyuan", "parse color [" + color + "] failed", e);
-      return "#ffffff";
+      return "#ffffffff";
     }
   }
 
