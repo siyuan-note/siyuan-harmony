@@ -112,7 +112,7 @@ export default class ShorthandAbility extends UIAbility {
       fileIo.closeSync(outFile);
 
       let ret = ""
-      if (utd.UniformDataType.IMAGE == record.utd) {
+      if (this.isImageRecord(record)) {
         ret += '![' + baseName + '](assets/' + fileName + ')\n\n';
       } else {
         ret += '[' + baseName + '](assets/' + fileName + ')\n\n';
@@ -122,6 +122,28 @@ export default class ShorthandAbility extends UIAbility {
       hilog.error(0x0000, 'siyuan', 'handle file record failed: ' + e);
       return "";
     }
+  }
+
+  // 判断分享记录是否为图片。record.utd 可能是 general.webp / general.jpeg 等具体子类型，
+  // 不能用 == 精确匹配 general.image（会漏掉 webp 等系统未归类的格式），改用归属关系 + 扩展名双重判断
+  private isImageRecord(record: systemShare.SharedRecord): boolean {
+    try {
+      const descriptor = utd.getUniformDataTypeDescriptorByType(record.utd);
+      if (descriptor && descriptor.belongingTypeIds && descriptor.belongingTypeIds.includes(utd.UniformDataType.IMAGE)) {
+        return true;
+      }
+    } catch (e) {
+      // 某些自定义/未知 UTD 查不到描述符，走扩展名回退
+    }
+
+    const imageExts = ['.png', '.jpg', '.jpeg', '.gif', '.bmp', '.webp', '.svg', '.heif', '.heic', '.tiff', '.ico'];
+    const lowerUri = record.uri.toLowerCase();
+    for (const ext of imageExts) {
+      if (lowerUri.endsWith(ext)) {
+        return true;
+      }
+    }
+    return false;
   }
 
   // 等分享数据解析完成且窗口舞台就绪后再加载页面，保证页面首屏即可读到 shareInput
