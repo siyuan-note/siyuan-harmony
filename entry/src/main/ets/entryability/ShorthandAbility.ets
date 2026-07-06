@@ -28,26 +28,38 @@ import { fileIo } from '@kit.CoreFileKit';
  * 闪念速记入口。
  *
  * @author <a href="https://88250.b3log.org">Liang Ding</a>
- * @version 1.0.0.0, May 9, 2026
+ * @version 1.0.0.1, Jul 6, 2026
  * @since 3.7.0
  */
 export default class ShorthandAbility extends UIAbility {
+  // 加载速记页面需要“分享数据解析完成”与“窗口舞台就绪”两个条件同时满足，
+  // 哪一个后到就由哪一个触发 loadContent，确保页面 aboutToAppear 执行时 shareInput 已写入 AppStorage
+  private windowStage: window.WindowStage | null = null;
+  private shareInputResolved: boolean = false;
+  private windowStageReady: boolean = false;
+  private pageLoaded: boolean = false;
+
   onCreate(want: Want, launchParam: AbilityConstant.LaunchParam): void {
     hilog.info(0x0000, 'siyuan', 'ShorthandAbility onCreate');
     AppStorage.setOrCreate('shorthandContext', this.context);
+    // 先清空上次残留的 shareInput，避免 onNewWant 复用 singleton 时页面显示旧内容
+    AppStorage.setOrCreate('shareInput', '');
     this.handleWant(want);
   }
 
   onNewWant(want: Want, launchParam: AbilityConstant.LaunchParam): void {
     hilog.info(0x0000, 'siyuan', 'ShorthandAbility onNewWant');
+    // 复用 singleton 再次分享时，重置标志并清空 shareInput，页面侧通过 @Watch 感知新值
+    this.shareInputResolved = false;
+    AppStorage.setOrCreate('shareInput', '');
     this.handleWant(want);
   }
 
   private async handleWant(want: Want) {
+    let shareInput = '';
     try {
       const data = await systemShare.getSharedData(want);
       const records = data.getRecords();
-      let shareInput = '';
       for (const record of records) {
         if (utd.UniformDataType.HTML == record.utd) {
           const md = napi.html2Markdown(record.content);
@@ -59,10 +71,14 @@ export default class ShorthandAbility extends UIAbility {
           shareInput = text;
         }
       }
-      AppStorage.setOrCreate("shareInput", shareInput);
     } catch (e) {
+      // 解析失败时 shareInput 保持空串，页面仍能正常加载显示空输入框，避免界面卡死空白
       hilog.error(0x0000, 'siyuan', 'handle want failed: ' + e);
     }
+
+    AppStorage.setOrCreate("shareInput", shareInput);
+    this.shareInputResolved = true;
+    this.loadShorthandPage();
   }
 
   private handleFileRecord(record: systemShare.SharedRecord): string {
@@ -108,6 +124,15 @@ export default class ShorthandAbility extends UIAbility {
     }
   }
 
+  // 等分享数据解析完成且窗口舞台就绪后再加载页面，保证页面首屏即可读到 shareInput
+  private loadShorthandPage(): void {
+    if (this.pageLoaded || !this.shareInputResolved || !this.windowStageReady || null === this.windowStage) {
+      return;
+    }
+    this.pageLoaded = true;
+    this.windowStage.loadContent('pages/Shorthand');
+  }
+
   onDestroy(): void {
     hilog.info(0x0000, 'siyuan', 'ShorthandAbility onDestroy');
   }
@@ -115,6 +140,7 @@ export default class ShorthandAbility extends UIAbility {
   async onWindowStageCreate(windowStage: window.WindowStage) {
     hilog.info(0x0000, 'siyuan', 'ShorthandAbility onWindowStageCreate');
 
+    this.windowStage = windowStage;
     const wnd = windowStage.getMainWindowSync();
     try {
       wnd.setWindowLayoutFullScreen(true);
@@ -124,7 +150,8 @@ export default class ShorthandAbility extends UIAbility {
       hilog.error(0x0000, 'siyuan', 'set main window system bar failed: ' + e);
     }
 
-    windowStage.loadContent('pages/Shorthand');
+    this.windowStageReady = true;
+    this.loadShorthandPage();
   }
 
   onWindowStageDestroy(): void {

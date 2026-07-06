@@ -66,7 +66,31 @@
               },
               {
                 "scheme": "file",
+                "utd": "general.video",
+                "maxFileSupported": 7,
+                "host": "*"
+              },
+              {
+                "scheme": "file",
+                "utd": "general.audio",
+                "maxFileSupported": 7,
+                "host": "*"
+              },
+              {
+                "scheme": "file",
                 "utd": "general.text",
+                "maxFileSupported": 7,
+                "host": "*"
+              },
+              {
+                "scheme": "file",
+                "utd": "general.pdf",
+                "maxFileSupported": 7,
+                "host": "*"
+              },
+              {
+                "scheme": "file",
+                "utd": "general.archive",
                 "maxFileSupported": 7,
                 "host": "*"
               },

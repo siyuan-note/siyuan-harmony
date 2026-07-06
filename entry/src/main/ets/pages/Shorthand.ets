@@ -24,17 +24,19 @@ import { fileIo as fs } from '@kit.CoreFileKit';
  * 闪念速记页面。
  *
  * @author <a href="https://88250.b3log.org">Liang Ding</a>
- * @version 1.0.0.0, May 9, 2026
+ * @version 1.0.0.1, Jul 6, 2026
  * @since 3.7.0
  */
 @Entry
 @Component
 struct Shorthand {
-  @StorageProp('shareInput') @Watch('onShareInputChange') shareInputProp: string = '';
+  // 用 @StorageLink 双向绑定，Ability 写入后页面立即同步；首屏加载时 shareInput 已就绪
+  @StorageLink('shareInput') @Watch('onShareInputChange') shareInputProp: string = '';
   @State inputText: string = '';
   @State submitEnabled: boolean = false;
 
   aboutToAppear(): void {
+    // Ability 侧已确保 loadContent 在 shareInput 写入 AppStorage 后才执行，这里同步读取一定能拿到值
     const shareInput = AppStorage.get("shareInput") as string ?? '';
     if (shareInput) {
       this.inputText += '\n\n' + shareInput;
@@ -44,6 +46,7 @@ struct Shorthand {
   }
 
   onShareInputChange(): void {
+    // Ability 在 onNewWant 处理前会先把 shareInput 清空为 ""，这里跳过空值避免误清空用户正在编辑的内容
     if (this.shareInputProp) {
       this.inputText += '\n\n' + this.shareInputProp;
       this.inputText = this.inputText.trim();
