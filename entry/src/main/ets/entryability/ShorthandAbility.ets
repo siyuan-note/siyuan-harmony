@@ -124,20 +124,21 @@ export default class ShorthandAbility extends UIAbility {
     }
   }
 
-  // 判断分享记录是否为图片。record.utd 可能是 general.webp / general.jpeg 等具体子类型，
-  // 不能用 == 精确匹配 general.image（会漏掉 webp 等系统未归类的格式），改用归属关系 + 扩展名双重判断
+  // 判断分享记录是否为图片。record.utd 可能是 general.image 大类或其子类型，
+  // 先用大类枚举快速匹配，再用扩展名兜底覆盖 webp 等具体格式
   private isImageRecord(record: systemShare.SharedRecord): boolean {
-    try {
-      const descriptor = utd.getUniformDataTypeDescriptorByType(record.utd);
-      if (descriptor && descriptor.belongingTypeIds && descriptor.belongingTypeIds.includes(utd.UniformDataType.IMAGE)) {
-        return true;
-      }
-    } catch (e) {
-      // 某些自定义/未知 UTD 查不到描述符，走扩展名回退
+    if (utd.UniformDataType.IMAGE === record.utd) {
+      return true;
+    }
+
+    // record.uri 在纯文本/HTML 记录上可能为 undefined，这里仅用于文件记录的图片判断
+    const uri = record.uri;
+    if (!uri) {
+      return false;
     }
 
     const imageExts = ['.png', '.jpg', '.jpeg', '.gif', '.bmp', '.webp', '.svg', '.heif', '.heic', '.tiff', '.ico'];
-    const lowerUri = record.uri.toLowerCase();
+    const lowerUri = uri.toLowerCase();
     for (const ext of imageExts) {
       if (lowerUri.endsWith(ext)) {
         return true;
