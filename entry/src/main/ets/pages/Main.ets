@@ -176,6 +176,18 @@ struct Main {
     });
   }
 
+  // 移动端容器启用桌面模式时，前端加载的是桌面 bundle（/stage/build/desktop/），
+  // 它依赖 WebView 自身管理软键盘，不会调用 showKeyboard 桥接。此时不能禁用 WebView 焦点，
+  // 否则软键盘收起一次后就再也无法重新获取焦点。https://github.com/siyuan-note/siyuan/issues/18028
+  private isDesktopMode(): boolean {
+    try {
+      const url = this.controller.getUrl();
+      return null != url && -1 < url.indexOf("/stage/build/desktop/");
+    } catch (e) {
+      return false;
+    }
+  }
+
   private listenKeyboard() {
     if (!Utils.isPhone()) {
       return;
@@ -196,7 +208,11 @@ struct Main {
           this.isFocusable = true;
         } else {
           this.controller.runJavaScript("javascript:hideKeyboardToolbar()")
-          this.isFocusable = false;
+          // 桌面模式依赖 WebView 自身管理软键盘，禁用焦点会导致键盘收起后无法再次获取焦点
+          // https://github.com/siyuan-note/siyuan/issues/18028
+          if (!this.isDesktopMode()) {
+            this.isFocusable = false;
+          }
         }
       });
     });
