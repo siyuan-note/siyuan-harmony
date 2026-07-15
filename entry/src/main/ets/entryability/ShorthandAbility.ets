@@ -56,21 +56,26 @@ export default class ShorthandAbility extends UIAbility {
   }
 
   private async handleWant(want: Want) {
-    let shareInput = '';
+    let shareInput = "";
     try {
       const data = await systemShare.getSharedData(want);
       const records = data.getRecords();
+      const recordInputs: string[] = [];
       for (const record of records) {
+        let recordInput = "";
         if (utd.UniformDataType.HTML == record.utd) {
-          const md = napi.html2Markdown(record.content);
-          shareInput = md;
+          recordInput = napi.html2Markdown(record.content);
         } else if (utd.UniformDataType.TEXT == record.utd) {
-          shareInput = record.content ?? "";
+          recordInput = record.content ?? "";
         } else {
-          const text = this.handleFileRecord(record);
-          shareInput = text;
+          recordInput = this.handleFileRecord(record);
+        }
+        const trimmedRecordInput = recordInput.trim();
+        if (trimmedRecordInput) {
+          recordInputs.push(trimmedRecordInput);
         }
       }
+      shareInput = recordInputs.join("\n\n");
     } catch (e) {
       // 解析失败时 shareInput 保持空串，页面仍能正常加载显示空输入框，避免界面卡死空白
       hilog.error(0x0000, 'siyuan', 'handle want failed: ' + e);
