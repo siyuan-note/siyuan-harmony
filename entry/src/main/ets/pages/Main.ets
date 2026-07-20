@@ -208,9 +208,8 @@ struct Main {
           this.isFocusable = true;
         } else {
           this.controller.runJavaScript("javascript:hideKeyboardToolbar()")
-          // 桌面模式依赖 WebView 自身管理软键盘，禁用焦点会导致键盘收起后无法再次获取焦点
-          // https://github.com/siyuan-note/siyuan/issues/18028
-          if (!this.isDesktopMode()) {
+          // 桌面模式和物理键盘输入依赖 WebView 保持焦点，否则软键盘收起后无法继续输入
+          if (1 > this.keyBoards.size && !this.isDesktopMode()) {
             this.isFocusable = false;
           }
         }
