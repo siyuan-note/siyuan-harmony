@@ -22,7 +22,7 @@ import { BusinessError, deviceInfo, emitter } from '@kit.BasicServicesKit';
 import { wantAgent, WantAgent } from '@kit.AbilityKit';
 import { webview } from '@kit.ArkWeb';
 import napi from 'libentry.so';
-import { JSHarmony } from './JSHarmony';
+import { isNativeTextSelectionMenuDisabled, JSHarmony } from './JSHarmony';
 import { Utils } from './Utils';
 import { window } from '@kit.ArkUI';
 import { inputMethod } from '@kit.IMEKit';
@@ -48,7 +48,7 @@ struct Main {
   };
 
   onCreateMenu(menuItems: Array<TextMenuItem>): Array<TextMenuItem> {
-    return menuItems.filter(() => false);
+    return isNativeTextSelectionMenuDisabled() ? [] : menuItems;
   }
 
   onMenuItemClick(menuItem: TextMenuItem, textRange: TextRange): boolean {
@@ -99,6 +99,7 @@ struct Main {
               "showKeyboard",
               "hideKeyboard",
               "setWebViewFocusable",
+              "setNativeTextSelectionMenuDisabled",
               "sendNotification",
               "cancelNotification",
             ]

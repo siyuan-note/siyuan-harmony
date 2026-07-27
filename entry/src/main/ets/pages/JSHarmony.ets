@@ -27,6 +27,12 @@ import { fileUri, fileIo as fs, picker } from '@kit.CoreFileKit';
 import { notificationManager } from '@kit.NotificationKit';
 import { reminderAgentManager } from '@kit.BackgroundTasksKit';
 
+let nativeTextSelectionMenuDisabled = false;
+
+export function isNativeTextSelectionMenuDisabled(): boolean {
+  return nativeTextSelectionMenuDisabled;
+}
+
 /**
  * JavaScript 接口。
  *
@@ -36,6 +42,10 @@ import { reminderAgentManager } from '@kit.BackgroundTasksKit';
  */
 @Component
 export struct JSHarmony {
+  setNativeTextSelectionMenuDisabled(disabled: boolean): void {
+    nativeTextSelectionMenuDisabled = disabled;
+  }
+
   async cancelNotification(id: number) {
     try {
       await notificationManager.cancel(id);
