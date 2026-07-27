@@ -32,7 +32,7 @@ import inputDevice from '@ohos.multimodalInput.inputDevice';
  * 主程序。
  *
  * @author <a href="https://88250.b3log.org">Liang Ding</a>
- * @version 1.2.0.1, May 5, 2026
+ * @version 1.2.0.2, Jul 27, 2026
  * @since 3.1.14
  */
 @Entry
@@ -42,10 +42,23 @@ struct Main {
   jsHarmony: JSHarmony = new JSHarmony();
   @State isFocusable: boolean = false;
   @State keyBoards: Map<number, inputDevice.KeyboardType> = new Map();
+  @State editMenuOptions: EditMenuOptions = {
+    onCreateMenu: this.onCreateMenu,
+    onMenuItemClick: this.onMenuItemClick
+  };
+
+  onCreateMenu(menuItems: Array<TextMenuItem>): Array<TextMenuItem> {
+    return menuItems.filter(() => false);
+  }
+
+  onMenuItemClick(menuItem: TextMenuItem, textRange: TextRange): boolean {
+    return false;
+  }
 
   build() {
     Row() {
       Web({ src: '', controller: this.controller })
+        .editMenuOptions(this.editMenuOptions)
         .darkMode(WebDarkMode.Auto)
         .javaScriptAccess(true)
         .domStorageAccess(true)
