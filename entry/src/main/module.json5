@@ -134,6 +134,16 @@
         "name": "ohos.permission.PRINT"
       },
       {
+        "name": "ohos.permission.MICROPHONE",
+        "usedScene": {
+          "abilities": [
+            "EntryAbility"
+          ],
+          "when": "inuse"
+        },
+        "reason": "$string:microphone_permission_reason"
+      },
+      {
         "name": "ohos.permission.READ_PASTEBOARD",
         "usedScene": {
           "abilities": [

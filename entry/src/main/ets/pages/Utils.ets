@@ -123,7 +123,7 @@ export struct Utils {
       const error = err as BusinessError
       console.error(`Failed to request permissions from user. Code is ${error.code}, message is ${error.message}`);
     }
-    return true
+    return false
   }
 
   static async requestPermissions(permissions: Permissions[]) {

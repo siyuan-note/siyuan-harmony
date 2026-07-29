@@ -55,6 +55,30 @@ struct Main {
     return false;
   }
 
+  private async handlePermissionRequest(event: OnPermissionRequestEvent) {
+    const request = event.request;
+    const origin = request.getOrigin();
+    const resources = request.getAccessibleResource();
+    if ((origin !== "http://127.0.0.1:6806" && origin !== "http://127.0.0.1:6806/") ||
+      resources.length !== 1 || resources[0] !== ProtectedResourceType.AUDIO_CAPTURE) {
+      hilog.warn(0x0000, "siyuan",
+        "deny web permission request from origin [" + origin + "], resources [" + JSON.stringify(resources) + "]");
+      request.deny();
+      return;
+    }
+
+    try {
+      if (await Utils.requestPermissions(["ohos.permission.MICROPHONE"])) {
+        request.grant(resources);
+      } else {
+        request.deny();
+      }
+    } catch (e) {
+      hilog.error(0x0000, "siyuan", "request microphone permission failed: " + e);
+      request.deny();
+    }
+  }
+
   build() {
     Row() {
       Web({ src: '', controller: this.controller })
@@ -71,6 +95,11 @@ struct Main {
         .textZoomRatio(100)
         .backgroundColor($r('app.color.bgColor'))
         .focusable(this.isFocusable)
+        .onPermissionRequest((event) => {
+          if (event) {
+            this.handlePermissionRequest(event);
+          }
+        })
         .onControllerAttached(() => {
           const context = Utils.getContext();
           const filesDir = context.filesDir;
