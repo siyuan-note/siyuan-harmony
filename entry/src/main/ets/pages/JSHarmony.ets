@@ -279,10 +279,11 @@ export struct JSHarmony {
       const lease = JSON.parse(leaseJSON) as Record<string, string | number>;
       leaseId = lease.leaseID as string;
       const srcPath = lease.path as string;
+      const expectedSize = lease.size as number;
       if (lease.name) {
         fileName = lease.name as string;
       }
-      if (!leaseId || !srcPath) {
+      if (!leaseId || !srcPath || typeof expectedSize !== "number" || expectedSize < 0) {
         napi.showMsg(napi.language(291), 5000);
         return;
       }
@@ -292,27 +293,36 @@ export struct JSHarmony {
       try {
         srcFd = fs.openSync(srcPath, fs.OpenMode.READ_ONLY).fd;
         const fileSize = fs.statSync(srcPath).size;
-        if (fileSize <= 0) {
-          napi.showMsg(napi.language(291), 5000);
-          return;
+        if (fileSize !== expectedSize) {
+          throw new Error("Export file size does not match its lease");
         }
 
         const editUri = result[0];
         dstFd = fs.openSync(editUri, fs.OpenMode.CREATE | fs.OpenMode.READ_WRITE | fs.OpenMode.TRUNC).fd;
         const bufSize = 65536;
         const readBuf = new ArrayBuffer(bufSize);
-        let offset = 0;
-        while (offset < fileSize) {
-          const chunkSize = Math.min(bufSize, fileSize - offset);
-          const bytesRead = fs.readSync(srcFd, readBuf, { offset: offset, length: chunkSize });
+        let readOffset = 0;
+        let writtenSize = 0;
+        while (readOffset < fileSize) {
+          const chunkSize = Math.min(bufSize, fileSize - readOffset);
+          const bytesRead = fs.readSync(srcFd, readBuf, { offset: readOffset, length: chunkSize });
           if (bytesRead <= 0) {
             break;
           }
-          const toWrite = bytesRead < bufSize ? readBuf.slice(0, bytesRead) : readBuf;
-          fs.writeSync(dstFd, toWrite);
-          offset += bytesRead;
+          let chunkOffset = 0;
+          while (chunkOffset < bytesRead) {
+            const toWrite = chunkOffset === 0 && bytesRead === bufSize ?
+              readBuf : readBuf.slice(chunkOffset, bytesRead);
+            const bytesWritten = fs.writeSync(dstFd, toWrite);
+            if (bytesWritten <= 0) {
+              throw new Error("Export file write made no progress");
+            }
+            chunkOffset += bytesWritten;
+            writtenSize += bytesWritten;
+          }
+          readOffset += bytesRead;
         }
-        if (offset !== fileSize) {
+        if (readOffset !== fileSize || writtenSize !== fileSize) {
           throw new Error("Incomplete export file copy");
         }
         napi.showMsg(napi.language(289), 5000);

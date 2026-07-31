@@ -22,6 +22,7 @@
 #include "thread"
 #include "future"
 #include <cstdlib>
+#include <string>
 
 static char *value2String(napi_env env, napi_value value) {
     size_t len = 0;
@@ -271,16 +272,51 @@ static void AcquireExportExecute(napi_env env, void *data) {
     context->lease = AcquireExportFile(context->exportPath);
 }
 
+static void ReleaseExportLeaseJSON(const char *leaseJSON) {
+    if (!leaseJSON) {
+        return;
+    }
+    std::string json(leaseJSON);
+    const std::string key = "\"leaseID\"";
+    size_t position = json.find(key);
+    if (position == std::string::npos) {
+        return;
+    }
+    position = json.find(':', position + key.length());
+    if (position == std::string::npos) {
+        return;
+    }
+    position = json.find('"', position + 1);
+    if (position == std::string::npos) {
+        return;
+    }
+    const size_t end = json.find('"', position + 1);
+    if (end == std::string::npos || end == position + 1) {
+        return;
+    }
+    std::string leaseID = json.substr(position + 1, end - position - 1);
+    ReleaseExportFile(const_cast<char *>(leaseID.c_str()));
+}
+
 static void AcquireExportComplete(napi_env env, napi_status status, void *data) {
     auto *context = static_cast<AcquireExportContext *>(data);
     napi_value result;
+    bool leaseTransferred = false;
     if (status == napi_ok && context->lease) {
-        napi_create_string_utf8(env, context->lease, strlen(context->lease), &result);
-        free(context->lease);
+        if (napi_create_string_utf8(env, context->lease, strlen(context->lease), &result) != napi_ok) {
+            ReleaseExportLeaseJSON(context->lease);
+            napi_get_undefined(env, &result);
+        } else {
+            leaseTransferred = true;
+        }
     } else {
+        ReleaseExportLeaseJSON(context->lease);
         napi_get_undefined(env, &result);
     }
-    napi_resolve_deferred(env, context->deferred, result);
+    if (napi_resolve_deferred(env, context->deferred, result) != napi_ok && leaseTransferred) {
+        ReleaseExportLeaseJSON(context->lease);
+    }
+    free(context->lease);
     napi_delete_async_work(env, context->work);
     delete[] context->exportPath;
     delete context;
