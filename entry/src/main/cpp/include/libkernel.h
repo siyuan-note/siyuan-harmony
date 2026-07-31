@@ -99,6 +99,9 @@ extern char* AssetName(char* name);
 extern char* HTML2Markdown(char* html);
 extern void Unzip(char* zipFilePath, char* destination);
 extern char* GetExportFilePath(char* exportPath);
+extern char* GetExportFileName(char* exportPath);
+extern char* AcquireExportFile(char* exportPath);
+extern void ReleaseExportFile(char* leaseID);
 extern void Exit(void);
 
 #ifdef __cplusplus

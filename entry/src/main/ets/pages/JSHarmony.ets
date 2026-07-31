@@ -255,15 +255,40 @@ export struct JSHarmony {
     if (!fileName) {
       fileName = "export";
     }
+    const exportName = napi.getExportFileName(url);
+    if (exportName) {
+      fileName = exportName;
+    }
 
+    let leaseId = "";
     try {
-      const srcPath = napi.getExportFilePath(url);
-      if (!srcPath) {
+      const documentSaveOptions = new picker.DocumentSaveOptions();
+      documentSaveOptions.newFileNames = [fileName];
+      const documentPicker = new picker.DocumentViewPicker();
+      const result = await documentPicker.save(documentSaveOptions);
+      if (!result || result.length === 0) {
+        hilog.info(0x0000, "siyuan", "User cancelled file save");
+        return;
+      }
+
+      const leaseJSON = await napi.acquireExportFile(url);
+      if (!leaseJSON) {
+        napi.showMsg(napi.language(291), 5000);
+        return;
+      }
+      const lease = JSON.parse(leaseJSON) as Record<string, string | number>;
+      leaseId = lease.leaseID as string;
+      const srcPath = lease.path as string;
+      if (lease.name) {
+        fileName = lease.name as string;
+      }
+      if (!leaseId || !srcPath) {
         napi.showMsg(napi.language(291), 5000);
         return;
       }
 
       let srcFd: number = -1;
+      let dstFd: number = -1;
       try {
         srcFd = fs.openSync(srcPath, fs.OpenMode.READ_ONLY).fd;
         const fileSize = fs.statSync(srcPath).size;
@@ -272,17 +297,8 @@ export struct JSHarmony {
           return;
         }
 
-        const documentSaveOptions = new picker.DocumentSaveOptions();
-        documentSaveOptions.newFileNames = [fileName];
-        const documentPicker = new picker.DocumentViewPicker();
-        const result = await documentPicker.save(documentSaveOptions);
-        if (!result || result.length === 0) {
-          hilog.info(0x0000, "siyuan", "User cancelled file save");
-          return;
-        }
-
         const editUri = result[0];
-        const dstFile = fs.openSync(editUri, fs.OpenMode.CREATE | fs.OpenMode.READ_WRITE | fs.OpenMode.TRUNC);
+        dstFd = fs.openSync(editUri, fs.OpenMode.CREATE | fs.OpenMode.READ_WRITE | fs.OpenMode.TRUNC).fd;
         const bufSize = 65536;
         const readBuf = new ArrayBuffer(bufSize);
         let offset = 0;
@@ -293,12 +309,21 @@ export struct JSHarmony {
             break;
           }
           const toWrite = bytesRead < bufSize ? readBuf.slice(0, bytesRead) : readBuf;
-          fs.writeSync(dstFile.fd, toWrite);
+          fs.writeSync(dstFd, toWrite);
           offset += bytesRead;
         }
-        fs.closeSync(dstFile);
+        if (offset !== fileSize) {
+          throw new Error("Incomplete export file copy");
+        }
         napi.showMsg(napi.language(289), 5000);
       } finally {
+        if (-1 !== dstFd) {
+          try {
+            fs.closeSync(dstFd);
+          } catch (closeErr) {
+            hilog.error(0x0000, "siyuan", "saveExportFile destination close failed: " + closeErr);
+          }
+        }
         if (-1 !== srcFd) {
           try {
             fs.closeSync(srcFd);
@@ -310,6 +335,10 @@ export struct JSHarmony {
     } catch (e) {
       hilog.error(0x0000, "siyuan", "saveExportFile failed: " + e);
       napi.showMsg(napi.language(290), 5000);
+    } finally {
+      if (leaseId) {
+        napi.releaseExportFile(leaseId);
+      }
     }
   }
 

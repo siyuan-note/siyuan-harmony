@@ -21,6 +21,7 @@
 #include "string.h"
 #include "thread"
 #include "future"
+#include <cstdlib>
 
 static char *value2String(napi_env env, napi_value value) {
     size_t len = 0;
@@ -258,6 +259,83 @@ static napi_value GetExportFilePath0(napi_env env, napi_callback_info info) {
     return result;
 }
 
+struct AcquireExportContext {
+    napi_async_work work;
+    napi_deferred deferred;
+    char *exportPath;
+    char *lease;
+};
+
+static void AcquireExportExecute(napi_env env, void *data) {
+    auto *context = static_cast<AcquireExportContext *>(data);
+    context->lease = AcquireExportFile(context->exportPath);
+}
+
+static void AcquireExportComplete(napi_env env, napi_status status, void *data) {
+    auto *context = static_cast<AcquireExportContext *>(data);
+    napi_value result;
+    if (status == napi_ok && context->lease) {
+        napi_create_string_utf8(env, context->lease, strlen(context->lease), &result);
+        free(context->lease);
+    } else {
+        napi_get_undefined(env, &result);
+    }
+    napi_resolve_deferred(env, context->deferred, result);
+    napi_delete_async_work(env, context->work);
+    delete[] context->exportPath;
+    delete context;
+}
+
+static napi_value AcquireExportFile0(napi_env env, napi_callback_info info) {
+    size_t argc = 1;
+    napi_value args[1] = {nullptr};
+    napi_get_cb_info(env, info, &argc, args, nullptr, nullptr);
+
+    auto *context = new AcquireExportContext();
+    context->exportPath = value2String(env, args[0]);
+    context->lease = nullptr;
+
+    napi_value promise;
+    napi_create_promise(env, &context->deferred, &promise);
+    napi_value resourceName;
+    napi_create_string_utf8(env, "AcquireExportFile", NAPI_AUTO_LENGTH, &resourceName);
+    napi_create_async_work(env, nullptr, resourceName, AcquireExportExecute, AcquireExportComplete, context,
+                           &context->work);
+    napi_queue_async_work(env, context->work);
+    return promise;
+}
+
+static napi_value ReleaseExportFile0(napi_env env, napi_callback_info info) {
+    size_t argc = 1;
+    napi_value args[1] = {nullptr};
+    napi_get_cb_info(env, info, &argc, args, nullptr, nullptr);
+    char *leaseID = value2String(env, args[0]);
+    ReleaseExportFile(leaseID);
+    delete[] leaseID;
+
+    napi_value result;
+    napi_get_undefined(env, &result);
+    return result;
+}
+
+static napi_value GetExportFileName0(napi_env env, napi_callback_info info) {
+    size_t argc = 1;
+    napi_value args[1] = {nullptr};
+    napi_get_cb_info(env, info, &argc, args, nullptr, nullptr);
+    char *exportPath = value2String(env, args[0]);
+    char *name = GetExportFileName(exportPath);
+    delete[] exportPath;
+
+    napi_value result;
+    if (name) {
+        napi_create_string_utf8(env, name, strlen(name), &result);
+        free(name);
+    } else {
+        napi_get_undefined(env, &result);
+    }
+    return result;
+}
+
 static napi_value Language0(napi_env env, napi_callback_info info) {
     napi_value result;
 
@@ -313,6 +391,9 @@ static napi_value Init(napi_env env, napi_value exports) {
         {"filterUploadFileName", nullptr, FilterUploadFileName0, nullptr, nullptr, nullptr, napi_default, nullptr},
         {"assetName", nullptr, AssetName0, nullptr, nullptr, nullptr, napi_default, nullptr},
         {"getExportFilePath", nullptr, GetExportFilePath0, nullptr, nullptr, nullptr, napi_default, nullptr},
+        {"getExportFileName", nullptr, GetExportFileName0, nullptr, nullptr, nullptr, napi_default, nullptr},
+        {"acquireExportFile", nullptr, AcquireExportFile0, nullptr, nullptr, nullptr, napi_default, nullptr},
+        {"releaseExportFile", nullptr, ReleaseExportFile0, nullptr, nullptr, nullptr, napi_default, nullptr},
         {"language", nullptr, Language0, nullptr, nullptr, nullptr, napi_default, nullptr},
         {"showMsg", nullptr, ShowMsg0, nullptr, nullptr, nullptr, napi_default, nullptr},
     };

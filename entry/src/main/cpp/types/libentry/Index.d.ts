@@ -39,6 +39,9 @@ export const filterUploadFileName: (name: string) => string;
 export const assetName: (name: string) => string;
 
 export const getExportFilePath: (exportPath: string) => string;
+export const getExportFileName: (exportPath: string) => string | undefined;
+export const acquireExportFile: (exportPath: string) => Promise<string | undefined>;
+export const releaseExportFile: (leaseID: string) => void;
 
 export const language: (num: number) => string;
 
