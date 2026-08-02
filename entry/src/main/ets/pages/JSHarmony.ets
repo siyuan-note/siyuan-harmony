@@ -367,7 +367,6 @@ export struct JSHarmony {
         throw new Error("Failed to close export file");
       }
       copySucceeded = true;
-      napi.showMsg(napi.language(289), 5000);
       this.notifyExportFileResult(requestID, "success", fileName);
     } catch (e) {
       hilog.error(0x0000, "siyuan", "saveExportFile failed: " + e);
