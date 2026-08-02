@@ -27,6 +27,16 @@ import { fileUri, fileIo as fs, picker } from '@kit.CoreFileKit';
 import { notificationManager } from '@kit.NotificationKit';
 import { reminderAgentManager } from '@kit.BackgroundTasksKit';
 
+interface ExportFileResult {
+  status: string;
+  name?: string;
+}
+
+export interface SaveExportFileResultEventData {
+  requestID: string;
+  resultJSON: string;
+}
+
 let nativeTextSelectionMenuDisabled = false;
 
 export function isNativeTextSelectionMenuDisabled(): boolean {
@@ -242,7 +252,12 @@ export struct JSHarmony {
   }
 
   async saveExportFile(url: string) {
+    await this.saveExportFileV2(url, "");
+  }
+
+  async saveExportFileV2(url: string, requestID: string) {
     if (!url) {
+      this.notifyExportFileResult(requestID, "error");
       return;
     }
 
@@ -268,28 +283,29 @@ export struct JSHarmony {
       const result = await documentPicker.save(documentSaveOptions);
       if (!result || result.length === 0) {
         hilog.info(0x0000, "siyuan", "User cancelled file save");
+        this.notifyExportFileResult(requestID, "canceled");
         return;
       }
 
       const leaseJSON = await napi.acquireExportFile(url);
       if (!leaseJSON) {
         napi.showMsg(napi.language(291), 5000);
+        this.notifyExportFileResult(requestID, "error");
         return;
       }
       const lease = JSON.parse(leaseJSON) as Record<string, string | number>;
       leaseId = lease.leaseID as string;
       const srcPath = lease.path as string;
       const expectedSize = lease.size as number;
-      if (lease.name) {
-        fileName = lease.name as string;
-      }
       if (!leaseId || !srcPath || typeof expectedSize !== "number" || expectedSize < 0) {
         napi.showMsg(napi.language(291), 5000);
+        this.notifyExportFileResult(requestID, "error");
         return;
       }
 
       let srcFd: number = -1;
       let dstFd: number = -1;
+      let closeFailed = false;
       try {
         srcFd = fs.openSync(srcPath, fs.OpenMode.READ_ONLY).fd;
         const fileSize = fs.statSync(srcPath).size;
@@ -325,12 +341,12 @@ export struct JSHarmony {
         if (readOffset !== fileSize || writtenSize !== fileSize) {
           throw new Error("Incomplete export file copy");
         }
-        napi.showMsg(napi.language(289), 5000);
       } finally {
         if (-1 !== dstFd) {
           try {
             fs.closeSync(dstFd);
           } catch (closeErr) {
+            closeFailed = true;
             hilog.error(0x0000, "siyuan", "saveExportFile destination close failed: " + closeErr);
           }
         }
@@ -338,18 +354,42 @@ export struct JSHarmony {
           try {
             fs.closeSync(srcFd);
           } catch (closeErr) {
+            closeFailed = true;
             hilog.error(0x0000, "siyuan", "saveExportFile close failed: " + closeErr);
           }
         }
       }
+      if (closeFailed) {
+        throw new Error("Failed to close export file");
+      }
+      napi.showMsg(napi.language(289), 5000);
+      this.notifyExportFileResult(requestID, "success", fileName);
     } catch (e) {
       hilog.error(0x0000, "siyuan", "saveExportFile failed: " + e);
       napi.showMsg(napi.language(290), 5000);
+      this.notifyExportFileResult(requestID, "error");
     } finally {
       if (leaseId) {
         napi.releaseExportFile(leaseId);
       }
     }
+  }
+
+  private notifyExportFileResult(requestID: string, status: string, name: string = "") {
+    if (!requestID) {
+      return;
+    }
+    const result: ExportFileResult = { status: status };
+    if (name) {
+      result.name = name;
+    }
+    const eventData: emitter.GenericEventData<SaveExportFileResultEventData> = {
+      data: {
+        requestID: requestID,
+        resultJSON: JSON.stringify(result)
+      }
+    };
+    emitter.emit<SaveExportFileResultEventData>("saveExportFileResult", eventData);
   }
 
   async print(title: string, html: string) {

@@ -22,7 +22,7 @@ import { BusinessError, deviceInfo, emitter } from '@kit.BasicServicesKit';
 import { wantAgent, WantAgent } from '@kit.AbilityKit';
 import { webview } from '@kit.ArkWeb';
 import napi from 'libentry.so';
-import { isNativeTextSelectionMenuDisabled, JSHarmony } from './JSHarmony';
+import { isNativeTextSelectionMenuDisabled, JSHarmony, SaveExportFileResultEventData } from './JSHarmony';
 import { Utils } from './Utils';
 import { window } from '@kit.ArkUI';
 import { inputMethod } from '@kit.IMEKit';
@@ -113,6 +113,7 @@ struct Main {
             [
               "exportByDefault",
               "saveExportFile",
+              "saveExportFileV2",
               "openExternal",
               "print",
               "getScreenWidthPx",
@@ -149,6 +150,18 @@ struct Main {
 
           emitter.on("systemLocked", () => {
             this.controller.runJavaScript("javascript:window.lockscreenByMode && window.lockscreenByMode()");
+          });
+
+          emitter.on<SaveExportFileResultEventData>("saveExportFileResult", (eventData) => {
+            const requestID = eventData.data?.requestID;
+            const resultJSON = eventData.data?.resultJSON;
+            if (!requestID || !resultJSON) {
+              return;
+            }
+            const argumentsJSON = JSON.stringify([requestID, resultJSON]);
+            this.controller.runJavaScript(
+              "javascript:window.handleSaveExportFileResult && " +
+                "window.handleSaveExportFileResult.apply(null," + argumentsJSON + ");");
           });
 
           hilog.info(0x0000, "siyuan",
