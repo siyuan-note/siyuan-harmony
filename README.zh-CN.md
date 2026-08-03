@@ -1,4 +1,4 @@
-[English](https://github.com/siyuan-note/siyuan-harmony/blob/main/README.md)
+[English](README.md)
 
 ## 概述
 
