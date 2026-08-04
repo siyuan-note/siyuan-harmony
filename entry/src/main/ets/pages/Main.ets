@@ -47,6 +47,22 @@ struct Main {
     onMenuItemClick: this.onMenuItemClick
   };
 
+  private deliverOIDCCallback(): void {
+    const callback = AppStorage.get<string>('oidcCallback') ?? '';
+    if (!callback) {
+      return;
+    }
+    const script = "(() => { if (typeof window.handleOIDCCallback !== 'function') { return 'pending'; } " +
+      'window.handleOIDCCallback(' + JSON.stringify(callback) + "); return 'handled'; })()";
+    this.controller.runJavaScript(script).then((result: string) => {
+      if (result === "handled") {
+        AppStorage.delete('oidcCallback');
+      }
+    }).catch((error: BusinessError) => {
+      hilog.error(0x0000, 'siyuan', 'deliver OIDC callback failed: ' + error.message);
+    });
+  }
+
   onCreateMenu(menuItems: Array<TextMenuItem>): Array<TextMenuItem> {
     return isNativeTextSelectionMenuDisabled() ? [] : menuItems;
   }
@@ -155,14 +171,10 @@ struct Main {
           });
 
           emitter.on("oidcCallback", () => {
-            const callback = AppStorage.get<string>("oidcCallback") ?? "";
-            if (!callback) {
-              return;
-            }
-            this.controller.runJavaScript("javascript:window.handleOIDCCallback && window.handleOIDCCallback(" +
-              JSON.stringify(callback) + ");");
-            AppStorage.delete("oidcCallback");
+            this.deliverOIDCCallback();
           });
+
+          this.deliverOIDCCallback();
 
           emitter.on<SaveExportFileResultEventData>("saveExportFileResult", (eventData) => {
             const requestID = eventData.data?.requestID;
