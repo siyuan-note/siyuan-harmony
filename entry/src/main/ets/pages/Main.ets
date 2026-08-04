@@ -115,6 +115,8 @@ struct Main {
               "saveExportFile",
               "saveExportFileV2",
               "openExternal",
+              "openAuthURL",
+              "getOIDCCallback",
               "print",
               "getScreenWidthPx",
               "changeStatusBarColor",
@@ -150,6 +152,16 @@ struct Main {
 
           emitter.on("systemLocked", () => {
             this.controller.runJavaScript("javascript:window.lockscreenByMode && window.lockscreenByMode()");
+          });
+
+          emitter.on("oidcCallback", () => {
+            const callback = AppStorage.get<string>("oidcCallback") ?? "";
+            if (!callback) {
+              return;
+            }
+            this.controller.runJavaScript("javascript:window.handleOIDCCallback && window.handleOIDCCallback(" +
+              JSON.stringify(callback) + ");");
+            AppStorage.delete("oidcCallback");
           });
 
           emitter.on<SaveExportFileResultEventData>("saveExportFileResult", (eventData) => {

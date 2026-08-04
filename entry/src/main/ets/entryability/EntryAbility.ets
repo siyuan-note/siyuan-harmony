@@ -33,6 +33,22 @@ export default class EntryAbility extends UIAbility {
   onCreate(want: Want, launchParam: AbilityConstant.LaunchParam): void {
     hilog.info(0x0000, "siyuan", 'ability onCreate [launchParam=' + JSON.stringify(launchParam) + "]");
     AppStorage.setOrCreate('abilityContext', this.context);
+    this.handleOIDCCallback(want);
+  }
+
+  onNewWant(want: Want, launchParam: AbilityConstant.LaunchParam): void {
+    hilog.info(0x0000, "siyuan", 'ability onNewWant [launchParam=' + JSON.stringify(launchParam) + "]");
+    this.handleOIDCCallback(want);
+  }
+
+  private handleOIDCCallback(want: Want): void {
+    const uri = want.uri ?? "";
+    if (!/^siyuan:\/oidc-callback(?:\?|$)/i.test(uri)) {
+      return;
+    }
+    AppStorage.setOrCreate("oidcCallback", uri);
+    AppStorage.set("oidcCallback", uri);
+    emitter.emit("oidcCallback");
   }
 
   onDestroy(): void {

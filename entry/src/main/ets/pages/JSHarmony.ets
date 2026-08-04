@@ -444,6 +444,20 @@ export struct JSHarmony {
     return;
   }
 
+  openAuthURL(url: string) {
+    if (!/^https?:\/\//i.test(url)) {
+      hilog.error(0x0000, "siyuan", "open OIDC authorization URL failed: invalid URL");
+      return;
+    }
+    Utils.openByDefaultBrowser(url);
+  }
+
+  getOIDCCallback(): string {
+    const callback = AppStorage.get<string>("oidcCallback") ?? "";
+    AppStorage.delete("oidcCallback");
+    return callback;
+  }
+
   changeStatusBarColor(color: string, appearanceMode: number) {
     if (Utils.isTablet() || Utils.isPC()) {
       return;
