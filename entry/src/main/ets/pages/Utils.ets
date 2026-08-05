@@ -32,6 +32,7 @@ import { BusinessError, deviceInfo } from '@kit.BasicServicesKit';
 import { backgroundTaskManager } from '@kit.BackgroundTasksKit';
 import { PrintParam } from './Print';
 import { connection } from '@kit.NetworkKit';
+import { LANSyncMDNS } from './LANSyncMDNS';
 
 /**
  * 工具类。
@@ -149,6 +150,7 @@ export struct Utils {
 
   static exit() {
     hilog.info(0x0000, "siyuan", "exit siyuan app")
+    LANSyncMDNS.shared.stop();
     try {
       const context = Utils.getContext()
       context.terminateSelf();

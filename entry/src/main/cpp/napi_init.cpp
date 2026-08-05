@@ -16,11 +16,11 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "libkernel.h"
+#include "future"
+#include "lan_sync_bridge.h"
 #include "napi/native_api.h"
 #include "string.h"
 #include "thread"
-#include "future"
 #include <cstdlib>
 #include <string>
 
@@ -260,6 +260,71 @@ static napi_value GetExportFilePath0(napi_env env, napi_callback_info info) {
     return result;
 }
 
+static napi_value LANSyncDiscoveryInfo0(napi_env env, napi_callback_info info) {
+    if (!LANSyncDiscoveryInfo) {
+        napi_value result;
+        napi_get_undefined(env, &result);
+        return result;
+    }
+    char *rawInfo = LANSyncDiscoveryInfo();
+    napi_value result;
+    if (rawInfo) {
+        napi_create_string_utf8(env, rawInfo, strlen(rawInfo), &result);
+        free(rawInfo);
+    } else {
+        napi_get_undefined(env, &result);
+    }
+    return result;
+}
+
+static napi_value AddLANSyncPeer0(napi_env env, napi_callback_info info) {
+    if (!AddLANSyncPeer) {
+        napi_value result;
+        napi_get_boolean(env, false, &result);
+        return result;
+    }
+    size_t argc = 4;
+    napi_value args[4] = {nullptr, nullptr, nullptr, nullptr};
+    napi_get_cb_info(env, info, &argc, args, nullptr, nullptr);
+    char *instance = value2String(env, args[0]);
+    char *address = value2String(env, args[1]);
+    int32_t port;
+    napi_get_value_int32(env, args[2], &port);
+    char *txtJSON = value2String(env, args[3]);
+    GoUint8 added = AddLANSyncPeer(instance, address, (GoInt)port, txtJSON);
+    delete[] instance;
+    delete[] address;
+    delete[] txtJSON;
+
+    napi_value result;
+    napi_get_boolean(env, added, &result);
+    return result;
+}
+
+static napi_value RemoveLANSyncPeer0(napi_env env, napi_callback_info info) {
+    if (!RemoveLANSyncPeer) {
+        napi_value result;
+        napi_get_boolean(env, false, &result);
+        return result;
+    }
+    size_t argc = 1;
+    napi_value args[1] = {nullptr};
+    napi_get_cb_info(env, info, &argc, args, nullptr, nullptr);
+    char *instance = value2String(env, args[0]);
+    GoUint8 removed = RemoveLANSyncPeer(instance);
+    delete[] instance;
+
+    napi_value result;
+    napi_get_boolean(env, removed, &result);
+    return result;
+}
+
+static napi_value LANSyncActive0(napi_env env, napi_callback_info info) {
+    napi_value result;
+    napi_get_boolean(env, LANSyncActive && LANSyncActive(), &result);
+    return result;
+}
+
 struct AcquireExportContext {
     napi_async_work work;
     napi_deferred deferred;
@@ -417,6 +482,10 @@ static napi_value Init(napi_env env, napi_value exports) {
         {"startKernel", nullptr, StartKernel0, nullptr, nullptr, nullptr, napi_default, nullptr},
         {"isHttpServing", nullptr, IsHttpServing0, nullptr, nullptr, nullptr, napi_default, nullptr},
         {"disableFeature", nullptr, DisableFeature0, nullptr, nullptr, nullptr, napi_default, nullptr},
+        {"lanSyncDiscoveryInfo", nullptr, LANSyncDiscoveryInfo0, nullptr, nullptr, nullptr, napi_default, nullptr},
+        {"addLANSyncPeer", nullptr, AddLANSyncPeer0, nullptr, nullptr, nullptr, napi_default, nullptr},
+        {"removeLANSyncPeer", nullptr, RemoveLANSyncPeer0, nullptr, nullptr, nullptr, napi_default, nullptr},
+        {"lanSyncActive", nullptr, LANSyncActive0, nullptr, nullptr, nullptr, napi_default, nullptr},
         {"unzip", nullptr, Unzip0, nullptr, nullptr, nullptr, napi_default, nullptr},
         {"getAssetAbsPath", nullptr, GetAssetAbsPath0, nullptr, nullptr, nullptr, napi_default, nullptr},
         {"getCurrentWorkspacePath", nullptr, GetCurrentWorkspacePath0, nullptr, nullptr, nullptr, napi_default,

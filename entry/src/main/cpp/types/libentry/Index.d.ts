@@ -22,6 +22,14 @@ export const isHttpServing: () => boolean;
 
 export const disableFeature: (feature: string) => void;
 
+export const lanSyncDiscoveryInfo: () => string | undefined;
+
+export const addLANSyncPeer: (instance: string, address: string, port: number, txtJSON: string) => boolean;
+
+export const removeLANSyncPeer: (instance: string) => boolean;
+
+export const lanSyncActive: () => boolean;
+
 export const unzip: (zipPath: string, dest: string) => void;
 
 export const getAssetAbsPath: (relativePath: string) => string;

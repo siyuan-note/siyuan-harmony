@@ -19,7 +19,7 @@
 import { hilog } from '@kit.PerformanceAnalysisKit';
 import { backgroundTaskManager } from '@kit.BackgroundTasksKit';
 import { BusinessError, deviceInfo, emitter } from '@kit.BasicServicesKit';
-import { wantAgent, WantAgent } from '@kit.AbilityKit';
+import { common, wantAgent, WantAgent } from '@kit.AbilityKit';
 import { webview } from '@kit.ArkWeb';
 import napi from 'libentry.so';
 import { isNativeTextSelectionMenuDisabled, JSHarmony, SaveExportFileResultEventData } from './JSHarmony';
@@ -27,6 +27,7 @@ import { Utils } from './Utils';
 import { window } from '@kit.ArkUI';
 import { inputMethod } from '@kit.IMEKit';
 import inputDevice from '@ohos.multimodalInput.inputDevice';
+import { LANSyncMDNS } from './LANSyncMDNS';
 
 /**
  * 主程序。
@@ -298,7 +299,7 @@ struct Main {
   }
 
   private startKernel(appDir: string, workspaceBaseDir: string) {
-    let context = getContext(this);
+    let context = getContext(this) as common.UIAbilityContext;
 
     let wantAgentInfo: wantAgent.WantAgentInfo = {
       wants: [
@@ -323,6 +324,7 @@ struct Main {
         napi.disableFeature("ai");
         hilog.info(0x0000, "siyuan", "disabled feature [ai]");
         napi.startKernel(appDir, workspaceBaseDir, localIPs, osVer);
+        LANSyncMDNS.shared.start(context);
         hilog.info(0x0000, "siyuan",
           "started kernel [appDir=" + appDir + ", workspaceBaseDir=" + workspaceBaseDir + ", localIPs=" + localIPs +
             ", osVer=" + osVer + "]");
