@@ -325,6 +325,24 @@ static napi_value LANSyncActive0(napi_env env, napi_callback_info info) {
     return result;
 }
 
+static napi_value UpdateLocalIPs0(napi_env env, napi_callback_info info) {
+    napi_value result;
+    napi_get_undefined(env, &result);
+    if (!UpdateLocalIPs) {
+        return result;
+    }
+    size_t argc = 1;
+    napi_value args[1] = {nullptr};
+    napi_get_cb_info(env, info, &argc, args, nullptr, nullptr);
+    char *localIPs = value2String(env, args[0]);
+    std::string addresses(localIPs);
+    delete[] localIPs;
+    std::thread([addresses]() {
+        UpdateLocalIPs(const_cast<char *>(addresses.c_str()));
+    }).detach();
+    return result;
+}
+
 struct AcquireExportContext {
     napi_async_work work;
     napi_deferred deferred;
@@ -486,6 +504,7 @@ static napi_value Init(napi_env env, napi_value exports) {
         {"addLANSyncPeer", nullptr, AddLANSyncPeer0, nullptr, nullptr, nullptr, napi_default, nullptr},
         {"removeLANSyncPeer", nullptr, RemoveLANSyncPeer0, nullptr, nullptr, nullptr, napi_default, nullptr},
         {"lanSyncActive", nullptr, LANSyncActive0, nullptr, nullptr, nullptr, napi_default, nullptr},
+        {"updateLocalIPs", nullptr, UpdateLocalIPs0, nullptr, nullptr, nullptr, napi_default, nullptr},
         {"unzip", nullptr, Unzip0, nullptr, nullptr, nullptr, napi_default, nullptr},
         {"getAssetAbsPath", nullptr, GetAssetAbsPath0, nullptr, nullptr, nullptr, napi_default, nullptr},
         {"getCurrentWorkspacePath", nullptr, GetCurrentWorkspacePath0, nullptr, nullptr, nullptr, napi_default,

@@ -30,6 +30,8 @@ export const removeLANSyncPeer: (instance: string) => boolean;
 
 export const lanSyncActive: () => boolean;
 
+export const updateLocalIPs: (localIPs: string) => void;
+
 export const unzip: (zipPath: string, dest: string) => void;
 
 export const getAssetAbsPath: (relativePath: string) => string;

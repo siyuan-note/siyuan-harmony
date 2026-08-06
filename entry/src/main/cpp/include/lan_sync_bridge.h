@@ -21,6 +21,7 @@ extern char *LANSyncDiscoveryInfo(void) __attribute__((weak));
 extern GoUint8 AddLANSyncPeer(char *instance, char *address, GoInt port, char *txtJSON) __attribute__((weak));
 extern GoUint8 RemoveLANSyncPeer(char *instance) __attribute__((weak));
 extern GoUint8 LANSyncActive(void) __attribute__((weak));
+extern void UpdateLocalIPs(char *localIPs) __attribute__((weak));
 
 #ifdef __cplusplus
 }
