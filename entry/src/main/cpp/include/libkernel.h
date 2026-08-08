@@ -82,6 +82,14 @@ typedef struct { void *data; GoInt len; GoInt cap; } GoSlice;
 extern "C" {
 #endif
 
+extern char* LANSyncDiscoveryInfo(void);
+extern GoUint8 AddLANSyncPeer(char* instance, char* address, GoInt port, char* txtJSON);
+extern GoUint8 RemoveLANSyncPeer(char* instance);
+extern GoUint8 LANSyncActive(void);
+extern void UpdateLocalIPs(char* localIPs);
+extern char* AcquireExportFile(char* exportPath);
+extern void ReleaseExportFile(char* leaseID);
+extern char* GetExportFileName(char* exportPath);
 extern void StartKernelFast(char* container, char* appDir, char* workspaceBaseDir, char* localIPs);
 extern void StartKernel(char* container, char* appDir, char* workspaceBaseDir, char* timezoneID, char* localIPs, char* lang, char* osVer);
 extern char* Language(GoInt num);
@@ -99,9 +107,6 @@ extern char* AssetName(char* name);
 extern char* HTML2Markdown(char* html);
 extern void Unzip(char* zipFilePath, char* destination);
 extern char* GetExportFilePath(char* exportPath);
-extern char* GetExportFileName(char* exportPath);
-extern char* AcquireExportFile(char* exportPath);
-extern void ReleaseExportFile(char* leaseID);
 extern void Exit(void);
 
 #ifdef __cplusplus
