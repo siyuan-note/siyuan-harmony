@@ -44,7 +44,8 @@ export default class EntryAbility extends UIAbility {
 
   private handleOIDCCallback(want: Want): void {
     const uri = want.uri ?? "";
-    if (!/^siyuan:\/oidc-callback(?:\?|$)/i.test(uri)) {
+    const lowerCaseURI = uri.toLowerCase();
+    if (lowerCaseURI !== "siyuan:/oidc-callback" && !lowerCaseURI.startsWith("siyuan:/oidc-callback?")) {
       return;
     }
     AppStorage.setOrCreate("oidcCallback", uri);

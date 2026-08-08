@@ -445,7 +445,8 @@ export struct JSHarmony {
   }
 
   openAuthURL(url: string) {
-    if (!/^https?:\/\//i.test(url)) {
+    const lowerCaseURL = url.toLowerCase();
+    if (!lowerCaseURL.startsWith("http://") && !lowerCaseURL.startsWith("https://")) {
       hilog.error(0x0000, "siyuan", "open OIDC authorization URL failed: invalid URL");
       return;
     }
