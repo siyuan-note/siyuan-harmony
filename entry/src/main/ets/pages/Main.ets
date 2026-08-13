@@ -321,8 +321,6 @@ struct Main {
         const localIPs = Utils.getIPAddressList();
         hilog.info(0x0000, "siyuan", "get local ips [" + localIPs + "]");
         const osVer: string = deviceInfo.osFullName.replace("OpenHarmony-", "");
-        napi.disableFeature("ai");
-        hilog.info(0x0000, "siyuan", "disabled feature [ai]");
         napi.startKernel(appDir, workspaceBaseDir, localIPs, osVer);
         LANSyncMDNS.shared.start(context);
         hilog.info(0x0000, "siyuan",
