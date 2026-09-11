@@ -26,6 +26,7 @@ import { Want, WantAgent, wantAgent, wantConstant } from '@kit.AbilityKit';
 import { fileUri, fileIo as fs, picker } from '@kit.CoreFileKit';
 import { notificationManager } from '@kit.NotificationKit';
 import { reminderAgentManager } from '@kit.BackgroundTasksKit';
+import { buildClipboardHTML, parseClipboardHTML } from "./Clipboard";
 
 interface ExportFileResult {
   status: string;
@@ -163,34 +164,41 @@ export struct JSHarmony {
     context.moveAbilityToBackground();
   }
 
-  writeSiYuanHTMLClipboard(text: string, html: string, siyuanHTML: string) {
+  writeSiYuanHTMLClipboard(text: string, html: string, siyuanHTML: string): boolean {
     try {
-      const pasteData: pasteboard.PasteData =
-        pasteboard.createData(pasteboard.MIMETYPE_TEXT_HTML, html + "__@text/siyuan@__" + siyuanHTML);
-      const systemPasteboard: pasteboard.SystemPasteboard = pasteboard.getSystemPasteboard();
-      systemPasteboard.setDataSync(pasteData);
+      return this.writeHTMLClipboard(text, buildClipboardHTML(html, siyuanHTML));
     } catch (e) {
-      hilog.error(0x0000, "siyuan", "failed to set PasteData. Cause: " + e.message);
+      hilog.error(0x0000, "siyuan", "failed to encode PasteData. Cause: " + e.message);
+      return false;
     }
   }
 
-  writeHTMLClipboard(text: string, html: string) {
+  writeHTMLClipboard(text: string, html: string): boolean {
     try {
       const systemPasteboard: pasteboard.SystemPasteboard = pasteboard.getSystemPasteboard();
-      const pasteData: pasteboard.PasteData = pasteboard.createData(pasteboard.MIMETYPE_TEXT_HTML, html);
+      const pasteData: pasteboard.PasteData = pasteboard.createData(
+        text ? pasteboard.MIMETYPE_TEXT_PLAIN : pasteboard.MIMETYPE_TEXT_HTML, text || html);
+      if (text) {
+        // 新增记录位于首位，保留 HTML 作为首选格式，同时提供独立纯文本。
+        pasteData.addRecord(pasteboard.MIMETYPE_TEXT_HTML, html);
+      }
       systemPasteboard.setDataSync(pasteData);
+      return true;
     } catch (e) {
       hilog.error(0x0000, "siyuan", "failed to set PasteData. Cause: " + e.message);
+      return false;
     }
   }
 
-  writeClipboard(text: string) {
+  writeClipboard(text: string): boolean {
     try {
       const systemPasteboard: pasteboard.SystemPasteboard = pasteboard.getSystemPasteboard();
       const pasteData: pasteboard.PasteData = pasteboard.createData(pasteboard.MIMETYPE_TEXT_PLAIN, text);
       systemPasteboard.setDataSync(pasteData);
+      return true;
     } catch (e) {
       hilog.error(0x0000, "siyuan", "failed to set PasteData. Cause: " + e.message);
+      return false;
     }
   }
 
@@ -220,7 +228,9 @@ export struct JSHarmony {
       if (!ret) {
         ret = "";
       }
-      return ret;
+      // 保留新格式注释供前端读取，旧格式转换后不再暴露可见分隔符。
+      const parsed = parseClipboardHTML(ret);
+      return buildClipboardHTML(parsed.textHTML, parsed.siyuanHTML);
     } catch (e) {
       hilog.error(0x0000, "siyuan", "read HTML clipboard failed: " + e);
       return ""
@@ -230,12 +240,7 @@ export struct JSHarmony {
   readSiYuanHTMLClipboard(): string {
     try {
       const result = pasteboard.getSystemPasteboard().getDataSync();
-      let html = result.getPrimaryHtml();
-      const parts = html.split("__@text/siyuan@__");
-      if (2 === parts.length) {
-        return parts[1];
-      }
-      return "";
+      return parseClipboardHTML(result.getPrimaryHtml() || "").siyuanHTML;
     } catch (e) {
       hilog.error(0x0000, "siyuan", "read siyuan HTML clipboard failed: " + e);
       return "";
