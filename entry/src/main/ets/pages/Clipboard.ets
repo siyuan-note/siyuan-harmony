@@ -14,12 +14,12 @@ export function buildClipboardHTML(html: string, siyuanHTML: string): string {
 }
 
 export function parseClipboardHTML(html: string): ClipboardHTML {
-  const match = html.match(/<!--data-siyuan='([^']+)'-->/);
+  const match = html.match(new RegExp("<!--data-siyuan='([^']+)'-->"));
   if (match) {
     try {
       const decoded = new util.Base64Helper().decodeSync(match[1]);
       return {
-        textHTML: html.replace(/<!--data-siyuan='[^']+'-->/g, ""),
+        textHTML: html.replace(new RegExp("<!--data-siyuan='[^']+'-->", "g"), ""),
         siyuanHTML: new util.TextDecoder("utf-8", { fatal: true }).decodeWithStream(decoded)
       };
     } catch (e) {
@@ -29,7 +29,7 @@ export function parseClipboardHTML(html: string): ClipboardHTML {
   }
   // 兼容旧剪贴板；无法确定分隔位置时保留原始内容。
   const parts = html.split("__@text/siyuan@__");
-  if (parts.length === 2 && parts[0].trimEnd().endsWith(">") && /^\s*<[a-zA-Z][^>]*>/.test(parts[1])) {
+  if (parts.length === 2 && parts[0].trimEnd().endsWith(">") && new RegExp("^\\s*<[a-zA-Z][^>]*>").test(parts[1])) {
     return { textHTML: parts[0], siyuanHTML: parts[1] };
   }
   return { textHTML: html, siyuanHTML: "" };
