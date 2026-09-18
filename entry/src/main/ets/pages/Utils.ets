@@ -33,6 +33,7 @@ import { backgroundTaskManager } from '@kit.BackgroundTasksKit';
 import { PrintParam } from './Print';
 import { connection, http } from '@kit.NetworkKit';
 import { LANSyncMDNS } from './LANSyncMDNS';
+import { webview } from '@kit.ArkWeb';
 
 interface SystemExitResponse {
   code: number;
@@ -153,12 +154,34 @@ export struct Utils {
     return await Utils.reqPermissionsFromUser(rejectedPs)
   }
 
-  static exit() {
+  private static async saveCookiesBeforeExit(): Promise<void> {
+    let timerID: number = -1;
+    try {
+      // 等待 Cookie 落盘，超时后继续退出，避免保存异常阻塞应用关闭。
+      await Promise.race([
+        webview.WebCookieManager.saveCookieAsync(),
+        new Promise<void>((_, reject) => {
+          timerID = setTimeout(() => {
+            reject(new Error("Save cookies timed out"));
+          }, 2000);
+        })
+      ]);
+    } catch (err) {
+      hilog.error(0x0000, "siyuan", "save cookies before exit failed: " + err);
+    } finally {
+      if (timerID !== -1) {
+        clearTimeout(timerID);
+      }
+    }
+  }
+
+  static async exit(): Promise<void> {
     if (Utils.terminating) {
       return;
     }
     Utils.terminating = true;
     hilog.info(0x0000, "siyuan", "exit siyuan app")
+    await Utils.saveCookiesBeforeExit();
     LANSyncMDNS.shared.stop();
     try {
       const context = Utils.getContext()
@@ -183,6 +206,7 @@ export struct Utils {
     }
     Utils.terminating = true;
     hilog.info(0x0000, "siyuan", "exit siyuan app from ability destroy")
+    await Utils.saveCookiesBeforeExit();
     LANSyncMDNS.shared.stop();
 
     try {

@@ -156,7 +156,7 @@ export struct JSHarmony {
   }
 
   exit() {
-    Utils.exit();
+    void Utils.exit();
   }
 
   returnDesktop() {

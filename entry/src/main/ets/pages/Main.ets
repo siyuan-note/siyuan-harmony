@@ -456,7 +456,7 @@ struct Main {
         this.listenKeyboard();
       }).catch((err: BusinessError) => {
         hilog.error(0x0000, "siyuan", "start kernel in background failed: " + err)
-        Utils.exit();
+        void Utils.exit();
       });
     });
   }
