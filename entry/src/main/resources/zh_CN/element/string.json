@@ -57,6 +57,14 @@
       "value": "提交"
     },
     {
+      "name": "saved",
+      "value": "✓"
+    },
+    {
+      "name": "saved_accessibility",
+      "value": "已保存"
+    },
+    {
       "name": "microphone_permission_reason",
       "value": "用于录制音频并插入当前文档"
     }

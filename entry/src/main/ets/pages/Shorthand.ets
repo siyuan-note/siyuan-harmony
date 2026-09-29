@@ -35,6 +35,8 @@ struct Shorthand {
   @StorageLink('shorthandPending') @Watch('onPendingChange') pendingInputCount: number = 0;
   @State submitEnabled: boolean = false;
   @State submitting: boolean = false;
+  @State submitSucceeded: boolean = false;
+  @State submitPulse: boolean = false;
 
   aboutToAppear(): void {
     this.refreshSubmitEnabled();
@@ -103,6 +105,16 @@ struct Shorthand {
     }
 
     this.inputText = '';
+    this.submitSucceeded = true;
+    animateTo({ duration: 180, curve: Curve.EaseOut }, () => {
+      this.submitPulse = true;
+    });
+    setTimeout(() => {
+      animateTo({ duration: 180, curve: Curve.EaseOut }, () => {
+        this.submitPulse = false;
+      });
+    }, 180);
+    await new Promise<void>(resolve => setTimeout(resolve, 750));
     try {
       await context.terminateSelf();
     } catch (error) {
@@ -122,9 +134,11 @@ struct Shorthand {
           .fontWeight(FontWeight.Bold)
           .layoutWeight(1)
 
-        Button($r('app.string.submit'))
-          .enabled(this.submitEnabled)
+        Button(this.submitSucceeded ? $r('app.string.saved') : $r('app.string.submit'))
+          .enabled(this.submitEnabled || this.submitSucceeded)
           .fontSize(14)
+          .scale({ x: this.submitPulse ? 1.08 : 1, y: this.submitPulse ? 1.08 : 1 })
+          .accessibilityText(this.submitSucceeded ? $r('app.string.saved_accessibility') : $r('app.string.submit'))
           .onClick(() => {
             this.onSubmit();
           })

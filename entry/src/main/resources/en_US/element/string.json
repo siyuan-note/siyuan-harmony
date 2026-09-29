@@ -57,6 +57,14 @@
       "value": "Submit"
     },
     {
+      "name": "saved",
+      "value": "✓"
+    },
+    {
+      "name": "saved_accessibility",
+      "value": "Saved"
+    },
+    {
       "name": "microphone_permission_reason",
       "value": "Used to record audio and insert it into the current document"
     }
