@@ -24,6 +24,9 @@
 #include <cstdlib>
 #include <string>
 
+struct OrtApiBase;
+extern "C" const OrtApiBase *OrtGetApiBase(void);
+
 static char *value2String(napi_env env, napi_value value) {
     size_t len = 0;
     napi_get_value_string_utf8(env, value, nullptr, 0, &len);
@@ -496,6 +499,8 @@ static napi_value ShowMsg0(napi_env env, napi_callback_info info) {
 
 EXTERN_C_START
 static napi_value Init(napi_env env, napi_value exports) {
+    // 引用原生运行库，确保识别不依赖 WebView 的生命周期。
+    (void)OrtGetApiBase();
     napi_property_descriptor desc[] = {
         {"startKernel", nullptr, StartKernel0, nullptr, nullptr, nullptr, napi_default, nullptr},
         {"isHttpServing", nullptr, IsHttpServing0, nullptr, nullptr, nullptr, napi_default, nullptr},
