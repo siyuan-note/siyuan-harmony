@@ -27,6 +27,7 @@ import { fileUri, fileIo as fs, picker } from '@kit.CoreFileKit';
 import { notificationManager } from '@kit.NotificationKit';
 import { reminderAgentManager } from '@kit.BackgroundTasksKit';
 import { buildClipboardHTML, parseClipboardHTML } from "./Clipboard";
+import { loadSystemFonts } from "./SystemFont";
 
 interface ExportFileResult {
   status: string;
@@ -63,6 +64,10 @@ export function getLocalAssetDownloadPath(url: string): string {
  */
 @Component
 export struct JSHarmony {
+  getSystemFonts(): Promise<string> {
+    return loadSystemFonts();
+  }
+
   setNativeTextSelectionMenuDisabled(disabled: boolean): void {
     nativeTextSelectionMenuDisabled = disabled;
   }

@@ -220,6 +220,7 @@ struct Main {
               "getOIDCCallback",
               "print",
               "getScreenWidthPx",
+              "getSystemFonts",
               "changeStatusBarColor",
               "readClipboard",
               "readHTMLClipboard",
