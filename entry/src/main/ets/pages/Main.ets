@@ -23,7 +23,7 @@ import { common, wantAgent, WantAgent } from '@kit.AbilityKit';
 import { webview } from '@kit.ArkWeb';
 import { http } from '@kit.NetworkKit';
 import napi from 'libentry.so';
-import { isNativeTextSelectionMenuDisabled, JSHarmony, SaveExportFileResultEventData } from './JSHarmony';
+import { getLocalAssetDownloadPath, isNativeTextSelectionMenuDisabled, JSHarmony, SaveExportFileResultEventData } from './JSHarmony';
 import { Utils } from './Utils';
 import { window } from '@kit.ArkUI';
 import { inputMethod } from '@kit.IMEKit';
@@ -277,6 +277,15 @@ struct Main {
             "appDir [" + appDir + "], workspaceBaseDir [" + workspaceBaseDir + "], ua [" + ua + "], isPhone [" +
             Utils.isPhone() + "]");
           this.startKernel(appDir, workspaceBaseDir);
+        })
+        .onDownloadStart((event) => {
+          if (!event) {
+            return;
+          }
+          const assetPath = getLocalAssetDownloadPath(event.url);
+          if (assetPath) {
+            this.jsHarmony.saveExportFile(assetPath);
+          }
         })
         .onOverrideUrlLoading((webResourceRequest) => {
           const url = webResourceRequest.getRequestUrl().toLowerCase();

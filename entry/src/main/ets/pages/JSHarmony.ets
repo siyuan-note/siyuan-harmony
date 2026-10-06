@@ -44,6 +44,16 @@ export function isNativeTextSelectionMenuDisabled(): boolean {
   return nativeTextSelectionMenuDisabled;
 }
 
+// 校验完整本地内核地址，保留资源路径编码和笔记本查询参数。
+export function getLocalAssetDownloadPath(url: string): string {
+  const prefix = "http://127.0.0.1:6806/";
+  if (!url.startsWith(prefix + "assets/")) {
+    return "";
+  }
+  const path = url.substring(prefix.length).split("#", 1)[0];
+  return path.split("?", 1)[0].length > "assets/".length ? path : "";
+}
+
 /**
  * JavaScript 接口。
  *
