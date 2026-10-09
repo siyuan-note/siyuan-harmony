@@ -64,7 +64,10 @@ test("duplicate names, italic styles and unreadable descriptors preserve upright
 
 test("font bridge returns its promise through the synchronous proxy method list", () => {
     const main = readFileSync(resolve(__dirname, "../entry/src/main/ets/pages/Main.ets"), "utf8");
-    assert.match(main, /registerJavaScriptProxy\(this.jsHarmony, "JSHarmony",[\s\S]*?"getSystemFonts"/);
+    assert.match(main, /registerJavaScriptProxy\(this.guardedBridge, NATIVE_BRIDGE_NAME,[\s\S]*?BRIDGE_METHODS/);
+    const guardedBridge = readFileSync(resolve(__dirname, "../entry/src/main/ets/pages/NativeBridgeBoundary.ets"), "utf8");
+    assert.match(guardedBridge, /BRIDGE_METHODS:[^\n]*"getSystemFonts"/);
+    assert.match(guardedBridge, /getSystemFonts\(secret: string\): Promise<string>/);
     const bridge = readFileSync(resolve(__dirname, "../entry/src/main/ets/pages/JSHarmony.ets"), "utf8");
     assert.match(bridge, /getSystemFonts\(\): Promise<string>\s*\{\s*return loadSystemFonts\(\);/);
 });

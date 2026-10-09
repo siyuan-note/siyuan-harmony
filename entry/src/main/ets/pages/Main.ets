@@ -29,6 +29,8 @@ import { window } from '@kit.ArkUI';
 import { inputMethod } from '@kit.IMEKit';
 import inputDevice from '@ohos.multimodalInput.inputDevice';
 import { LANSyncMDNS } from './LANSyncMDNS';
+import { BRIDGE_METHODS, BRIDGE_PERMISSION, GuardedJSHarmony, isAllowedMainDocument,
+  isTrustedBridgeDocument, NativeBridgeBoundary, NATIVE_BRIDGE_NAME } from './NativeBridgeBoundary';
 
 interface BootProgressData {
   progress: number;
@@ -52,6 +54,12 @@ const MAIN_PAGE_LOAD_TIMEOUT: number = 30000;
 struct Main {
   controller: webview.WebviewController = new webview.WebviewController();
   jsHarmony: JSHarmony = new JSHarmony();
+  private bridgeBoundary: NativeBridgeBoundary = new NativeBridgeBoundary();
+  private guardedBridge: GuardedJSHarmony = new GuardedJSHarmony(this.jsHarmony, this.controller, this.bridgeBoundary);
+  private bridgeAttached: boolean = false;
+  private bridgeScripts: ScriptItem[] = [{
+    script: this.bridgeBoundary.bootstrapScript(), scriptRules: ['http://127.0.0.1:6806']
+  }];
   @State isFocusable: boolean = false;
   @State keyBoards: Map<number, inputDevice.KeyboardType> = new Map();
   @State mediaPlaybackRequiresUserGesture: boolean = false;
@@ -70,6 +78,43 @@ struct Main {
   private bootProgressMonitorGeneration: number = 0;
   private bootProgressPollTimerID: number = -1;
   private mainPageWatchdogID: number = -1;
+
+  private registerNativeBridge(): void {
+    this.bridgeBoundary.setInstalled(false);
+    this.controller.registerJavaScriptProxy(this.guardedBridge, NATIVE_BRIDGE_NAME,
+      BRIDGE_METHODS.concat(['getAVMapNativeBoundary']), [], BRIDGE_PERMISSION);
+    this.bridgeBoundary.setInstalled(true);
+  }
+
+  private revokeMapBoundary(): void {
+    this.bridgeBoundary.revokeDocument();
+    // Settle existing document waiters as well as invalidating the native nonce.
+    // pagehide independently settles them if navigation wins this IPC race.
+    if (this.bridgeAttached) {
+      try {
+        this.controller.runJavaScript("window.__siyuanRevokeMapBoundary && window.__siyuanRevokeMapBoundary()")
+          .catch(() => {});
+      } catch (e) {
+        // A destroyed renderer has no remaining JavaScript timers to settle.
+      }
+    }
+  }
+
+  private activateMapBoundary(url?: string): void {
+    if (!this.pageActive || !url || !isTrustedBridgeDocument(url)) {
+      return;
+    }
+    const generation = this.bridgeBoundary.currentGeneration();
+    this.controller.runJavaScript(this.bridgeBoundary.activationScript()).then((result: string) => {
+      if (generation === this.bridgeBoundary.currentGeneration() && result !== 'true') {
+        this.bridgeBoundary.revokeDocument();
+      }
+    }).catch(() => {
+      if (generation === this.bridgeBoundary.currentGeneration()) {
+        this.bridgeBoundary.revokeDocument();
+      }
+    });
+  }
 
   private deliverOIDCCallback(): void {
     const callback = AppStorage.get<string>('oidcCallback') ?? '';
@@ -125,6 +170,7 @@ struct Main {
         .editMenuOptions(this.editMenuOptions)
         .darkMode(WebDarkMode.Auto)
         .javaScriptAccess(true)
+        .javaScriptOnDocumentStart(this.bridgeScripts)
         .domStorageAccess(true)
         .imageAccess(true)
         .onlineImageAccess(true)
@@ -141,6 +187,7 @@ struct Main {
           }
         })
         .onPageBegin((event) => {
+          this.revokeMapBoundary();
           const url = event?.url;
           if (url && url.startsWith("http://127.0.0.1:6806/") &&
             0 > url.indexOf("/appearance/boot/")) {
@@ -151,6 +198,7 @@ struct Main {
         })
         .onPageEnd((event) => {
           const url = event?.url;
+          this.activateMapBoundary(url);
           if (this.isReadyMainPage(url)) {
             this.stopBootProgressMonitor();
             this.kernelBootCompleted = true;
@@ -210,34 +258,8 @@ struct Main {
           const ua =
             "SiYuan/" + Utils.appVer + " https://b3log.org/siyuan Harmony " + this.controller.getUserAgent();
           this.controller.setCustomUserAgent(ua);
-          this.controller.registerJavaScriptProxy(this.jsHarmony, "JSHarmony",
-            [
-              "exportByDefault",
-              "saveExportFile",
-              "saveExportFileV2",
-              "openExternal",
-              "openAuthURL",
-              "getOIDCCallback",
-              "print",
-              "getScreenWidthPx",
-              "getSystemFonts",
-              "changeStatusBarColor",
-              "readClipboard",
-              "readHTMLClipboard",
-              "readSiYuanHTMLClipboard",
-              "writeClipboard",
-              "writeHTMLClipboard",
-              "writeSiYuanHTMLClipboard",
-              "returnDesktop",
-              "exit",
-              "showKeyboard",
-              "hideKeyboard",
-              "setWebViewFocusable",
-              "setNativeTextSelectionMenuDisabled",
-              "sendNotification",
-              "cancelNotification",
-            ]
-          );
+          this.bridgeAttached = true;
+          this.registerNativeBridge();
 
           emitter.on("isFocusableTrue", () => {
             this.isFocusable = true;
@@ -288,19 +310,31 @@ struct Main {
             this.jsHarmony.saveExportFile(assetPath);
           }
         })
-        .onOverrideUrlLoading((webResourceRequest) => {
-          const url = webResourceRequest.getRequestUrl().toLowerCase();
-
-          if (-1 < url.indexOf("127.0.0.1") && 0 > url.indexOf("openExternal")) {
-            this.controller.loadUrl(url);
+        .onLoadIntercept((event) => {
+          if (!event) {
             return true;
           }
-
-          if (webResourceRequest.isMainFrame() && url.startsWith("http")) {
+          const request = event.data;
+          const url = request.getRequestUrl();
+          // HTTP(S) iframe navigations do not invoke onOverrideUrlLoading.
+          // Reject privileged documents in children, including redirect targets.
+          if (!request.isMainFrame()) {
+            return isAllowedMainDocument(url);
+          }
+          return !isAllowedMainDocument(url);
+        })
+        .onOverrideUrlLoading((request) => {
+          const url = request.getRequestUrl();
+          if (!request.isMainFrame()) {
+            return isAllowedMainDocument(url);
+          }
+          if (isAllowedMainDocument(url) && !/[?&]openExternal(?:=|&|$)/i.test(url)) {
+            return false;
+          }
+          if (/^https?:\/\//i.test(url)) {
             Utils.openByDefaultBrowser(url);
-            return true;
           }
-          return false;
+          return true;
         })
         .onTouch((event: TouchEvent) => {
           // 手指抬起时通知前端，用于清除长按多选定时器
@@ -315,6 +349,9 @@ struct Main {
 
   async aboutToAppear() {
     this.pageActive = true;
+    if (this.bridgeAttached) {
+      this.registerNativeBridge();
+    }
     try {
       Utils.setUIContext(this.getUIContext());
     } catch (e) {
@@ -366,6 +403,15 @@ struct Main {
 
   aboutToDisappear(): void {
     this.pageActive = false;
+    this.revokeMapBoundary();
+    this.bridgeBoundary.setInstalled(false);
+    if (this.bridgeAttached) {
+      try {
+        this.controller.deleteJavaScriptRegister(NATIVE_BRIDGE_NAME);
+      } catch (e) {
+        hilog.error(0x0000, 'siyuan', 'unregister native bridge failed');
+      }
+    }
     this.cancelMainPageWatchdog();
     this.stopBootProgressMonitor();
   }
@@ -610,6 +656,7 @@ struct Main {
   }
 
   private scheduleWebViewRecovery(): void {
+    this.revokeMapBoundary();
     if (this.webViewRecoveryScheduled) {
       return;
     }
