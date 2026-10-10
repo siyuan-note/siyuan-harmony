@@ -37,7 +37,7 @@ static char *value2String(napi_env env, napi_value value) {
 }
 
 static napi_value StartKernel0(napi_env env, napi_callback_info info) {
-    napi_value result;
+    napi_value result = nullptr;
 
     size_t argc = 4;
     napi_value args[4] = {nullptr, nullptr, nullptr, nullptr};
@@ -73,7 +73,7 @@ static napi_value IsHttpServing0(napi_env env, napi_callback_info info) {
 }
 
 static napi_value DisableFeature0(napi_env env, napi_callback_info info) {
-    napi_value result;
+    napi_value result = nullptr;
 
     size_t argc = 1;
     napi_value args[1] = {nullptr};
@@ -87,7 +87,7 @@ static napi_value DisableFeature0(napi_env env, napi_callback_info info) {
 }
 
 static napi_value Unzip0(napi_env env, napi_callback_info info) {
-    napi_value result;
+    napi_value result = nullptr;
 
     size_t argc = 2;
     napi_value args[2] = {nullptr, nullptr};
@@ -482,7 +482,7 @@ static napi_value Language0(napi_env env, napi_callback_info info) {
 }
 
 static napi_value ShowMsg0(napi_env env, napi_callback_info info) {
-    napi_value result;
+    napi_value result = nullptr;
 
     size_t argc = 2;
     napi_value args[2] = {nullptr, nullptr};
