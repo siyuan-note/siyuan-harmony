@@ -49,6 +49,11 @@ interface SystemExitResponse {
 @Component
 export struct Utils {
   private static terminating: boolean = false;
+
+  static isTerminating(): boolean {
+    return Utils.terminating;
+  }
+
   public static appVer =
     bundleManager.getBundleInfoForSelfSync(bundleManager.BundleFlag.GET_BUNDLE_INFO_WITH_APPLICATION).versionName;
   public static appVerCode =

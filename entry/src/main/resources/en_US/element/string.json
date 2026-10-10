@@ -1,6 +1,10 @@
 {
   "string": [
     {
+      "name": "kernel_start_wait",
+      "value": "Waiting for the previous session to finish. Please wait...\nNext time, close SiYuan using “Quit application” in the app menu so it can reopen normally"
+    },
+    {
       "name": "module_desc",
       "value": "module description"
     },

@@ -1,6 +1,10 @@
 {
   "string": [
     {
+      "name": "kernel_start_wait",
+      "value": "正在等待上次退出完成，请稍候...\n下次请通过应用菜单中的「退出应用」关闭思源，以便正常重新打开"
+    },
+    {
       "name": "module_desc",
       "value": "module description"
     },

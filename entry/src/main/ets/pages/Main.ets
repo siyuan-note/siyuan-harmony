@@ -29,6 +29,7 @@ import { window } from '@kit.ArkUI';
 import { inputMethod } from '@kit.IMEKit';
 import inputDevice from '@ohos.multimodalInput.inputDevice';
 import { LANSyncMDNS } from './LANSyncMDNS';
+import { kernelStartup } from "./KernelStartup";
 import { BRIDGE_METHODS, BRIDGE_PERMISSION, GuardedJSHarmony, isAllowedMainDocument,
   isTrustedBridgeDocument, NativeBridgeBoundary, NATIVE_BRIDGE_NAME } from './NativeBridgeBoundary';
 
@@ -63,6 +64,7 @@ struct Main {
   @State isFocusable: boolean = false;
   @State keyBoards: Map<number, inputDevice.KeyboardType> = new Map();
   @State mediaPlaybackRequiresUserGesture: boolean = false;
+  @State kernelPortWaiting: boolean = false;
   @State editMenuOptions: EditMenuOptions = {
     onCreateMenu: this.onCreateMenu,
     onMenuItemClick: this.onMenuItemClick
@@ -78,6 +80,7 @@ struct Main {
   private bootProgressMonitorGeneration: number = 0;
   private bootProgressPollTimerID: number = -1;
   private mainPageWatchdogID: number = -1;
+  private kernelStartInProgress: boolean = false;
 
   private registerNativeBridge(): void {
     this.bridgeBoundary.setInstalled(false);
@@ -165,7 +168,7 @@ struct Main {
   }
 
   build() {
-    Row() {
+    Stack() {
       Web({ src: '', controller: this.controller })
         .editMenuOptions(this.editMenuOptions)
         .darkMode(WebDarkMode.Auto)
@@ -299,7 +302,7 @@ struct Main {
           hilog.info(0x0000, "siyuan",
             "appDir [" + appDir + "], workspaceBaseDir [" + workspaceBaseDir + "], ua [" + ua + "], isPhone [" +
             Utils.isPhone() + "]");
-          this.startKernel(appDir, workspaceBaseDir);
+          void this.startKernel(appDir, workspaceBaseDir);
         })
         .onDownloadStart((event) => {
           if (!event) {
@@ -328,10 +331,10 @@ struct Main {
           if (!request.isMainFrame()) {
             return isAllowedMainDocument(url);
           }
-          if (isAllowedMainDocument(url) && !/[?&]openExternal(?:=|&|$)/i.test(url)) {
+          if (isAllowedMainDocument(url) && !new RegExp("[?&]openExternal(?:=|&|$)", "i").test(url)) {
             return false;
           }
-          if (/^https?:\/\//i.test(url)) {
+          if (new RegExp("^https?://", "i").test(url)) {
             Utils.openByDefaultBrowser(url);
           }
           return true;
@@ -342,6 +345,11 @@ struct Main {
             this.controller.runJavaScript("javascript:window.dispatchEvent(new Event('nativePhysicalTouchUp'))");
           }
         })
+      if (this.kernelPortWaiting) {
+        Text($r("app.string.kernel_start_wait"))
+          .textAlign(TextAlign.Center)
+          .width("90%")
+      }
     }
     .width("100%")
     .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.BOTTOM]);
@@ -398,6 +406,9 @@ struct Main {
         }
         this.startBootProgressMonitor();
       }
+    } else if (this.bridgeAttached) {
+      const filesDir = Utils.getContext().filesDir;
+      void this.startKernel(filesDir, filesDir + "/workspaces");
     }
   }
 
@@ -475,46 +486,66 @@ struct Main {
     });
   }
 
-  private startKernel(appDir: string, workspaceBaseDir: string) {
-    let context = getContext(this) as common.UIAbilityContext;
-
-    let wantAgentInfo: wantAgent.WantAgentInfo = {
-      wants: [
-        {
-          bundleName: Utils.bundleName,
-          abilityName: "EntryAbility"
+  private async startKernel(appDir: string, workspaceBaseDir: string): Promise<void> {
+    if (this.kernelStartInProgress || !this.canStartKernel()) {
+      return;
+    }
+    this.kernelStartInProgress = true;
+    try {
+      if (!kernelStartup.hasStarted()) {
+        const context = getContext(this) as common.UIAbilityContext;
+        const wantAgentInfo: wantAgent.WantAgentInfo = {
+          wants: [{ bundleName: Utils.bundleName, abilityName: "EntryAbility" }],
+          actionType: wantAgent.OperationType.START_ABILITY,
+          requestCode: 0,
+          actionFlags: [wantAgent.WantAgentFlags.UPDATE_PRESENT_FLAG]
+        };
+        hilog.info(0x0000, "siyuan", "start kernel in background");
+        const wantAgentObj: WantAgent = await wantAgent.getWantAgent(wantAgentInfo);
+        if (!this.canStartKernel()) {
+          return;
         }
-      ],
-      actionType: wantAgent.OperationType.START_ABILITY,
-      requestCode: 0,
-      actionFlags: [wantAgent.WantAgentFlags.UPDATE_PRESENT_FLAG]
-    };
-
-    hilog.info(0x0000, "siyuan", "start kernel in background");
-
-    wantAgent.getWantAgent(wantAgentInfo).then((wantAgentObj: WantAgent) => {
-      backgroundTaskManager.startBackgroundRunning(context,
-        backgroundTaskManager.BackgroundMode.DATA_TRANSFER, wantAgentObj).then(() => {
+        await backgroundTaskManager.startBackgroundRunning(context,
+          backgroundTaskManager.BackgroundMode.DATA_TRANSFER, wantAgentObj);
+        if (!this.canStartKernel()) {
+          return;
+        }
         const localIPs = Utils.getIPAddressList();
         hilog.info(0x0000, "siyuan", "get local ips [" + localIPs + "]");
         const osVer: string = deviceInfo.osFullName.replace("OpenHarmony-", "");
-        napi.startKernel(appDir, workspaceBaseDir, localIPs, osVer);
+        const started = await kernelStartup.start(() => {
+          napi.startKernel(appDir, workspaceBaseDir, localIPs, osVer);
+        }, () => this.canStartKernel(), (waiting: boolean) => {
+          this.kernelPortWaiting = waiting;
+        });
+        if (!started || !this.canStartKernel()) {
+          return;
+        }
         LANSyncMDNS.shared.start(context);
         hilog.info(0x0000, "siyuan",
           "started kernel [appDir=" + appDir + ", workspaceBaseDir=" + workspaceBaseDir + ", localIPs=" + localIPs +
             ", osVer=" + osVer + "]");
-        this.waitFotKernelHttpServing().then(() => {
-          this.loadBootPage();
-          this.startBootProgressMonitor();
-          hilog.info(0x0000, "siyuan", "load boot page");
-        });
-
-        this.listenKeyboard();
-      }).catch((err: BusinessError) => {
-        hilog.error(0x0000, "siyuan", "start kernel in background failed: " + err)
+      }
+      if (!await this.waitFotKernelHttpServing()) {
+        return;
+      }
+      this.loadBootPage();
+      this.startBootProgressMonitor();
+      hilog.info(0x0000, "siyuan", "load boot page");
+      this.listenKeyboard();
+    } catch (err) {
+      hilog.error(0x0000, "siyuan", "start kernel in background failed: " + err);
+      if (this.canStartKernel()) {
         void Utils.exit();
-      });
-    });
+      }
+    } finally {
+      this.kernelStartInProgress = false;
+      this.kernelPortWaiting = false;
+    }
+  }
+
+  private canStartKernel(): boolean {
+    return this.pageActive && !Utils.isTerminating();
   }
 
   private loadBootPage(): void {
@@ -664,7 +695,7 @@ struct Main {
     this.webViewRecoveryScheduled = true;
     setTimeout(() => {
       this.webViewRecoveryScheduled = false;
-      if (!this.pageActive) {
+      if (!this.canStartKernel() || !napi.isHttpServing()) {
         return;
       }
       if (this.kernelBootCompleted) {
@@ -679,15 +710,19 @@ struct Main {
     }, 300);
   }
 
-  async waitFotKernelHttpServing() {
-    while (true) {
+  async waitFotKernelHttpServing(): Promise<boolean> {
+    while (this.canStartKernel()) {
       await this.sleep(10);
-      const ok = await napi.isHttpServing();
+      if (!this.canStartKernel()) {
+        return false;
+      }
+      const ok = napi.isHttpServing();
       hilog.debug(0x0000, "siyuan", "http serving [" + ok + "]");
       if (ok) {
-        break;
+        return true;
       }
     }
+    return false;
   }
 
   async sleep(mills: number) {

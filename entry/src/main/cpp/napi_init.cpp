@@ -17,6 +17,7 @@
  */
 
 #include "future"
+#include "kernel_startup.h"
 #include "lan_sync_bridge.h"
 #include "napi/native_api.h"
 #include "string.h"
@@ -34,6 +35,18 @@ static char *value2String(napi_env env, napi_value value) {
     napi_get_value_string_utf8(env, value, buf, len + 1, &len);
 
     return buf;
+}
+
+static napi_value IsKernelPortAvailable0(napi_env env, napi_callback_info info) {
+    const int error = GetKernelPortError(6806);
+    if (error != 0 && error != EADDRINUSE) {
+        const std::string message = std::string("check kernel startup port failed: ") + strerror(error);
+        napi_throw_error(env, nullptr, message.c_str());
+        return nullptr;
+    }
+    napi_value result = nullptr;
+    napi_get_boolean(env, error == 0, &result);
+    return result;
 }
 
 static napi_value StartKernel0(napi_env env, napi_callback_info info) {
@@ -502,6 +515,7 @@ static napi_value Init(napi_env env, napi_value exports) {
     // 引用原生运行库，确保识别不依赖 WebView 的生命周期。
     (void)OrtGetApiBase();
     napi_property_descriptor desc[] = {
+        {"isKernelPortAvailable", nullptr, IsKernelPortAvailable0, nullptr, nullptr, nullptr, napi_default, nullptr},
         {"startKernel", nullptr, StartKernel0, nullptr, nullptr, nullptr, napi_default, nullptr},
         {"isHttpServing", nullptr, IsHttpServing0, nullptr, nullptr, nullptr, napi_default, nullptr},
         {"disableFeature", nullptr, DisableFeature0, nullptr, nullptr, nullptr, napi_default, nullptr},
