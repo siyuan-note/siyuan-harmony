@@ -346,9 +346,35 @@ struct Main {
           }
         })
       if (this.kernelPortWaiting) {
-        Text($r("app.string.kernel_start_wait"))
-          .textAlign(TextAlign.Center)
-          .width("90%")
+        Column() {
+          Column({ space: 12 }) {
+            LoadingProgress()
+              .width(32)
+              .height(32)
+              .color($r("app.color.start_main_color"))
+              .margin({ bottom: 8 })
+            Text($r("app.string.kernel_start_wait"))
+              .fontSize(18)
+              .fontWeight(FontWeight.Medium)
+              .fontColor($r("sys.color.ohos_id_color_text_primary"))
+              .lineHeight(26)
+              .textAlign(TextAlign.Center)
+              .width("100%")
+            Text($r("app.string.kernel_start_wait_hint"))
+              .fontSize(14)
+              .fontColor($r("sys.color.ohos_id_color_text_secondary"))
+              .lineHeight(22)
+              .textAlign(TextAlign.Center)
+              .width("100%")
+          }
+          .width("100%")
+          .constraintSize({ maxWidth: 360 })
+        }
+        .justifyContent(FlexAlign.Center)
+        .width("100%")
+        .height("100%")
+        .padding({ left: 32, right: 32, top: 24, bottom: 24 })
+        .backgroundColor($r("app.color.bgColor"))
       }
     }
     .width("100%")
