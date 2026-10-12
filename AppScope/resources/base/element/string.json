@@ -3,6 +3,10 @@
     {
       "name": "app_name",
       "value": "思源笔记"
+    },
+    {
+      "name": "app_name_debug",
+      "value": "SiYuan-Debug"
     }
   ]
 }

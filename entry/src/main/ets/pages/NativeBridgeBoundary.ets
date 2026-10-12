@@ -27,14 +27,13 @@ export function isTrustedBridgeDocument(url: string): boolean {
 
 export function isAllowedMainDocument(url: string): boolean {
   const documentURL = url.split('#', 1)[0].split('?', 1)[0];
-  return isTrustedBridgeDocument(url) || documentURL === ORIGIN + '/' ||
-    documentURL === ORIGIN + '/appearance/boot/index.html';
+  return isTrustedBridgeDocument(url) || documentURL === ORIGIN || documentURL === ORIGIN + '/' ||
+    documentURL === ORIGIN + '/appearance/boot/' || documentURL === ORIGIN + '/appearance/boot/index.html';
 }
 
-// Permissions use prefix paths. Exact document matching below is also mandatory.
+// 平台权限仅限制内核来源，具体页面和调用凭据由 NativeBridgeBoundary 校验。
 export const BRIDGE_PERMISSION: string = '{"javascriptProxyPermission":{"urlPermissionList":[' +
-  DOCUMENT_PATHS.map((path: string): string =>
-    '{"scheme":"http","host":"127.0.0.1","port":"6806","path":' + JSON.stringify(path) + '}').join(',') + ']}}';
+  '{"scheme":"http","host":"127.0.0.1","port":"6806","path":""}]}}';
 
 export interface AVMapNativeBoundary {
   version: number;

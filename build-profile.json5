@@ -29,6 +29,21 @@
         "arkTSVersion": "1.0",
         "targetSdkVersion": "6.0.0(20)",
         "compatibleSdkVersion": "5.1.0(18)"
+      },
+      {
+        "name": "debug",
+        "bundleName": "org.b3log.siyuan.ho.debug",
+        "label": "$string:app_name_debug",
+        "runtimeOS": "HarmonyOS",
+        "buildOption": {
+          "strictMode": {
+            "caseSensitiveCheck": true,
+            "useNormalizedOHMUrl": true
+          }
+        },
+        "arkTSVersion": "1.0",
+        "targetSdkVersion": "6.0.0(20)",
+        "compatibleSdkVersion": "5.1.0(18)"
       }
     ],
     "buildModeSet": [
@@ -48,7 +63,8 @@
         {
           "name": "default",
           "applyToProducts": [
-            "default"
+            "default",
+            "debug"
           ]
         }
       ]
