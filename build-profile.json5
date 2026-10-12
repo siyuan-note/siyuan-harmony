@@ -5,13 +5,26 @@
         "name": "default",
         "type": "HarmonyOS",
         "material": {
-          "storeFile": "D:/微云同步助手/845765/Keystore/siyuan-harmony.p12",
-          "storePassword": "0000001A6E292CFFD48976196DCF924BC14EB74DD0D6A8CBEC263EFA159A43D4837059DE9EBD9817ED0A",
+          "certpath": "D:/微云同步助手/845765/Keystore/思源笔记鸿蒙.cer",
           "keyAlias": "key0",
-          "keyPassword": "0000001A6F1589CA931F285E1DC692E0B098C64DA1E100CD3CD624CE0A966500F3DBBFBDCEF68D0A4F36",
-          "signAlg": "SHA256withECDSA",
+          "keyPassword": "0000001A4E7274DC0A82DFB60B5B1C91C052D9B1E9E6E522285AF601A036DEC78FF9141898E9C788D530",
           "profile": "D:/微云同步助手/845765/Keystore/SiYuan鸿蒙Release.p7b",
-          "certpath": "D:/微云同步助手/845765/Keystore/思源笔记鸿蒙.cer"
+          "signAlg": "SHA256withECDSA",
+          "storeFile": "D:/微云同步助手/845765/Keystore/siyuan-harmony.p12",
+          "storePassword": "0000001AFAC07CE9E554AA17DA414C386F2E6FC2182C4BF929C2FA8CEF83D588C3C52E232879848531D1"
+        }
+      },
+      {
+        "name": "debug",
+        "type": "HarmonyOS",
+        "material": {
+          "certpath": "C:\\Users\\DL882\\.ohos\\config\\debug_siyuan-harmony_YFCjDQy-ww7Cjnt0g-ft718npfco6QDHYHyDX6sazh0=.cer",
+          "keyAlias": "debugKey",
+          "keyPassword": "0000001A9B642EBEBEA6A020E85CEA986BD432EAE343EF29277224D54860B0567F2127E543716F75AEDF",
+          "profile": "C:\\Users\\DL882\\.ohos\\config\\debug_siyuan-harmony_YFCjDQy-ww7Cjnt0g-ft718npfco6QDHYHyDX6sazh0=.p7b",
+          "signAlg": "SHA256withECDSA",
+          "storeFile": "C:\\Users\\DL882\\.ohos\\config\\debug_siyuan-harmony_YFCjDQy-ww7Cjnt0g-ft718npfco6QDHYHyDX6sazh0=.p12",
+          "storePassword": "0000001A0160FA569C801AE386859DD25B023FFE357D888ABB08CB70804845490B323D8A3710E97B4089"
         }
       }
     ],
@@ -33,6 +46,7 @@
       {
         "name": "debug",
         "bundleName": "org.b3log.siyuan.ho.debug",
+        "signingConfig": "debug",
         "label": "$string:app_name_debug",
         "runtimeOS": "HarmonyOS",
         "buildOption": {
