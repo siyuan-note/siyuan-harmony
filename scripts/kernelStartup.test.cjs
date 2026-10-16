@@ -39,7 +39,7 @@ const createHarness = () => {
     const evaluate = source => {
         const module = { exports: {} };
         const compiled = ts.transpileModule(source, { compilerOptions: {
-            module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022,
+            module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, esModuleInterop: false,
         } }).outputText;
         runInNewContext(compiled, { ...context, module, exports: module.exports,
             require: id => id === "libentry.so" ? { default: napi } : { hilog } });
@@ -82,7 +82,6 @@ const createHarness = () => {
         loadBootPage() { events.push(["boot-page"]); }
         startBootProgressMonitor() { events.push(["progress"]); }
         listenKeyboard() { events.push(["keyboard"]); }
-        revokeMapBoundary() { events.push(["revoke"]); }
         navigateToMainPage() { events.push(["main-page"]); }
         async sleep(delay) { await new Promise(resolve => setTimeout(resolve, delay)); }
         ${startupMethods}

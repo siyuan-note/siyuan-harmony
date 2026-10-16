@@ -12,7 +12,7 @@ const load = (name, mocks) => {
     const source = readFileSync(resolve(__dirname, "../entry/src/main/ets/pages", name + ".ets"), "utf8")
         .replace("@Component", "").replace("export struct JSHarmony", "export class JSHarmony");
     const compiled = ts.transpileModule(source, {
-        compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
+        compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, esModuleInterop: false },
     }).outputText;
     const module = { exports: {} };
     runInNewContext(compiled, { module, exports: module.exports, require: id => mocks[id] || {} });

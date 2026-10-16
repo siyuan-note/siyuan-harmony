@@ -33,7 +33,7 @@ const createHarness = (saveCookie) => {
     const source = readFileSync(resolve(__dirname, "../entry/src/main/ets/pages/Utils.ets"), "utf8")
         .replace("@Component", "").replace("export struct Utils", "export class Utils");
     const compiled = ts.transpileModule(source, {
-        compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
+        compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, esModuleInterop: false },
     }).outputText;
     const module = { exports: {} };
     runInNewContext(compiled, {
