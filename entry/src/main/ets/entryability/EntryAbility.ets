@@ -20,6 +20,8 @@ import { AbilityConstant, UIAbility, Want } from '@kit.AbilityKit';
 import { emitter, screenLock } from '@kit.BasicServicesKit';
 import { hilog } from '@kit.PerformanceAnalysisKit';
 import { window } from '@kit.ArkUI';
+import { webview } from '@kit.ArkWeb';
+import BuildProfile from 'BuildProfile';
 import { Utils } from '../pages/Utils';
 
 /**
@@ -31,6 +33,8 @@ import { Utils } from '../pages/Utils';
  */
 export default class EntryAbility extends UIAbility {
   onCreate(want: Want, launchParam: AbilityConstant.LaunchParam): void {
+    // 在创建 Web 组件前按构建模式设置调试权限，发布版保持关闭。
+    webview.WebviewController.setWebDebuggingAccess(BuildProfile.DEBUG);
     hilog.info(0x0000, "siyuan", 'ability onCreate [launchParam=' + JSON.stringify(launchParam) + "]");
     AppStorage.setOrCreate('abilityContext', this.context);
     this.handleOIDCCallback(want);
