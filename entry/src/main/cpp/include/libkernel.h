@@ -95,7 +95,6 @@ extern void StartKernel(char* container, char* appDir, char* workspaceBaseDir, c
 extern char* Language(GoInt num);
 extern void ShowMsg(char* msg, GoInt timeout);
 extern GoUint8 IsHttpServing(void);
-extern void SetHttpServerPort(GoInt port);
 extern char* GetCurrentWorkspacePath(void);
 extern char* GetAssetAbsPath(char* relativePath);
 extern char* GetMimeTypeByExt(char* ext);
