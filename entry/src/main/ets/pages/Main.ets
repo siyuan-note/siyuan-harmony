@@ -39,6 +39,12 @@ interface BootProgressResponse {
   data?: BootProgressData;
 }
 
+interface FrontendStartupStatus {
+  ready: boolean;
+  failed: boolean;
+  stage: string;
+}
+
 const MAIN_PAGE_LOAD_TIMEOUT: number = 30000;
 
 /**
@@ -52,6 +58,10 @@ const MAIN_PAGE_LOAD_TIMEOUT: number = 30000;
 @Component
 struct Main {
   controller: webview.WebviewController = new webview.WebviewController();
+  private bootController: webview.WebviewController = new webview.WebviewController();
+  private bootWebViewAttached: boolean = false;
+  private pendingBootURL: string = "";
+  @State private showBootPage: boolean = true;
   jsHarmony: JSHarmony = new JSHarmony();
   private webViewAttached: boolean = false;
   @State isFocusable: boolean = false;
@@ -73,6 +83,9 @@ struct Main {
   private bootProgressMonitorGeneration: number = 0;
   private bootProgressPollTimerID: number = -1;
   private mainPageWatchdogID: number = -1;
+  private mainPageReadinessGeneration: number = 0;
+  private mainPageReadinessTimerID: number = -1;
+  private mainPageStartupStage: string = "";
   private kernelStartInProgress: boolean = false;
 
   private deliverOIDCCallback(): void {
@@ -151,6 +164,8 @@ struct Main {
             this.mediaPlaybackRequiresUserGesture = true;
             this.mainPageNavigationStarted = true;
             this.mainPageReady = false;
+            this.mainPageStartupStage = "";
+            this.scheduleMainPageWatchdog();
           }
         })
         .onPageEnd((event) => {
@@ -159,9 +174,7 @@ struct Main {
             this.stopBootProgressMonitor();
             this.kernelBootCompleted = true;
             this.mainPageNavigationStarted = true;
-            this.mainPageReady = true;
             this.forceDefaultBootAppearance = false;
-            this.cancelMainPageWatchdog();
           }
         })
         .onErrorReceive((event) => {
@@ -313,6 +326,46 @@ struct Main {
             this.controller.runJavaScript("javascript:window.dispatchEvent(new Event('nativePhysicalTouchUp'))");
           }
         })
+      if (this.showBootPage) {
+        // 启动页覆盖在主 WebView 上方，前端完成绘制后再销毁。
+        Web({ src: '', controller: this.bootController })
+          .javaScriptAccess(true)
+          .domStorageAccess(true)
+          .imageAccess(true)
+          .cacheMode(CacheMode.Online)
+          .mediaPlayGestureAccess(false)
+          .zoomAccess(false)
+          .backgroundColor($r('app.color.bgColor'))
+          .onControllerAttached(() => {
+            this.bootWebViewAttached = true;
+            this.bootController.setCustomUserAgent(
+              "SiYuan/" + Utils.appVer + " https://b3log.org/siyuan Harmony " + this.bootController.getUserAgent());
+            if (this.pendingBootURL) this.bootController.loadUrl(this.pendingBootURL);
+          })
+          .onOverrideUrlLoading((request) => {
+            const url = request.getRequestUrl();
+            if (request.isMainFrame() && url.startsWith("http://127.0.0.1:6806/") &&
+              !url.startsWith("http://127.0.0.1:6806/appearance/boot/")) {
+              this.kernelBootCompleted = true;
+              this.stopBootProgressMonitor();
+              this.navigateToMainPage();
+              return true;
+            }
+            return request.isMainFrame() && !url.startsWith("http://127.0.0.1:6806/appearance/boot/");
+          })
+          .onErrorReceive((event) => {
+            if (!event?.request.isMainFrame()) return;
+            if (!this.forceDefaultBootAppearance) {
+              this.forceDefaultBootAppearance = true;
+              this.loadBootPage();
+            } else {
+              this.removeBootPage();
+            }
+          })
+          .onRenderExited(() => {
+            this.removeBootPage();
+          })
+      }
       if (this.kernelPortWaiting) {
         Column() {
           Column({ space: 12 }) {
@@ -536,12 +589,20 @@ struct Main {
     this.mainPageReady = false;
     const safeParameter = this.forceDefaultBootAppearance ? "&appearance=0" : "";
     try {
-      this.controller.loadUrl("http://127.0.0.1:6806/appearance/boot/index.html?v=" + Utils.appVer + safeParameter);
+      this.pendingBootURL = "http://127.0.0.1:6806/appearance/boot/index.html?v=" + Utils.appVer + safeParameter;
+      this.showBootPage = true;
+      if (this.bootWebViewAttached) this.bootController.loadUrl(this.pendingBootURL);
     } catch (e) {
       hilog.error(0x0000, "siyuan", "load boot page failed: " + e);
       this.forceDefaultBootAppearance = true;
       this.scheduleWebViewRecovery();
     }
+  }
+
+  private removeBootPage(): void {
+    this.showBootPage = false;
+    this.bootWebViewAttached = false;
+    this.pendingBootURL = "";
   }
 
   private startBootProgressMonitor(): void {
@@ -659,13 +720,60 @@ struct Main {
       this.mainPageNavigationStarted = false;
       this.navigateToMainPage();
     }, MAIN_PAGE_LOAD_TIMEOUT);
+    this.pollMainPageReadiness(this.mainPageReadinessGeneration);
   }
 
   private cancelMainPageWatchdog(): void {
+    this.mainPageReadinessGeneration++;
+    if (0 <= this.mainPageReadinessTimerID) {
+      clearTimeout(this.mainPageReadinessTimerID);
+      this.mainPageReadinessTimerID = -1;
+    }
     if (0 <= this.mainPageWatchdogID) {
       clearTimeout(this.mainPageWatchdogID);
       this.mainPageWatchdogID = -1;
     }
+  }
+
+  private pollMainPageReadiness(generation: number): void {
+    if (generation !== this.mainPageReadinessGeneration || !this.pageActive) return;
+    const script = `JSON.stringify({
+      ready: Boolean(window.siyuan && window.siyuan.isReady) || location.pathname === '/check-auth',
+      failed: document.documentElement.getAttribute('data-startup-state') === 'failed',
+      stage: document.documentElement.getAttribute('data-startup-stage') || ''
+    })`;
+    try {
+      this.controller.runJavaScript(script).then((result: string) => {
+        if (generation !== this.mainPageReadinessGeneration || !this.pageActive) return;
+        const decoded = JSON.parse(result) as FrontendStartupStatus | string;
+        const status = typeof decoded === "string" ? JSON.parse(decoded) as FrontendStartupStatus : decoded;
+        if (status.ready || status.failed) {
+          this.mainPageReady = status.ready;
+          this.removeBootPage();
+          this.cancelMainPageWatchdog();
+          return;
+        }
+        if (status.stage && status.stage !== this.mainPageStartupStage) {
+          this.mainPageStartupStage = status.stage;
+          this.scheduleMainPageWatchdog();
+          return;
+        }
+        this.scheduleReadinessPoll(generation);
+      }).catch(() => {
+        // 导航期间脚本未就绪时保留启动页，继续轮询直到成功或触发超时恢复。
+        this.scheduleReadinessPoll(generation);
+      });
+    } catch (e) {
+      this.scheduleReadinessPoll(generation);
+    }
+  }
+
+  private scheduleReadinessPoll(generation: number): void {
+    if (generation !== this.mainPageReadinessGeneration || !this.pageActive) return;
+    this.mainPageReadinessTimerID = setTimeout(() => {
+      this.mainPageReadinessTimerID = -1;
+      this.pollMainPageReadiness(generation);
+    }, 250);
   }
 
   private scheduleWebViewRecovery(): void {
