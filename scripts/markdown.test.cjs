@@ -281,6 +281,80 @@ test("Harmony escaped boundary operations commit, replay and reconcile with an i
     }
 });
 
+test("Harmony open failures preserve the active page and subsequent close channel", async () => {
+    const {MarkdownHost} = load("MarkdownHost");
+    const host = Object.create(MarkdownHost.prototype);
+    const events = [];
+    Object.assign(host, {languages: {}, ready: true, protectedFailure: false, destroyed: false,
+        pageGeneration: 1, documentEpoch: 2, controller: {}, pending: new Map(),
+        context: {terminateSelf: async () => events.push("terminate")},
+        cancelTreeCandidate: async () => {}, io: {uuid: () => "close-command"},
+        ui: {notice: message => events.push(message), failure: () => assert.fail("must not replace the page")},
+        sendScript: async () => {
+            events.push("close-channel");
+            const pending = host.pending.get("close-command");
+            clearTimeout(pending.timer); host.pending.delete("close-command"); pending.resolve(true);
+        }});
+    host.reportOpenFailure();
+    assert.equal(host.ready, true); assert.equal(host.protectedFailure, false);
+    assert.equal(host.pageGeneration, 1); assert.equal(host.documentEpoch, 2);
+    assert.equal(await host.close(), true);
+    assert.deepEqual(events, ["markdownFileUnavailable", "close-channel", "terminate"]);
+    const page = readFileSync(resolve(directory, "../pages/Markdown.ets"), "utf8");
+    const notice = page.slice(page.indexOf("notice: (message"), page.indexOf("failure: (message"));
+    assert.match(notice, /showToast/); assert.match(notice, /catch/);
+    assert.doesNotMatch(notice, /resetChannel|pageReady|protectedFailure/);
+});
+
+test("Harmony occupied tree opens focus the owner without releasing the current session", async () => {
+    const h = harness(); h.put(candidate, "owner body"); h.put(source, "current body");
+    const cache = new Map();
+    const mocks = {"@kit.CoreFileKit": {
+        fileUri: {FileUri: class {constructor(uri) {this.name = uri.slice(uri.lastIndexOf("/") + 1);}}},
+        fileShare: {OperationMode: {READ_MODE: 1, WRITE_MODE: 2}, async persistPermission() {}, async activatePermission() {},
+            async checkPersistentPermission() {return [true];}},
+    }};
+    const {MarkdownHost} = load("MarkdownHost", mocks, cache);
+    const {MarkdownTransactions} = load("MarkdownTransactions", mocks, cache);
+    const {markdownRegistry} = load("MarkdownRegistry", mocks, cache);
+    const {MarkdownWindows} = load("MarkdownWindows", mocks, cache);
+    MarkdownHost.store = h.store;
+    const owner = new MarkdownTransactions("owner", h.io, h.store, markdownRegistry);
+    const current = new MarkdownTransactions("current", h.io, h.store, markdownRegistry);
+    await owner.authorize(candidate, "copy.md", true, false);
+    await current.authorize(source, "source.md", true, false);
+    let focused = 0; let failFocus = false; let stale = false;
+    const host = Object.create(MarkdownHost.prototype);
+    Object.assign(host, {io: h.io, transactions: current, documentEpoch: 0, treeRequestEpoch: 0,
+        treeOpening: false, released: false, destroyed: false, tree: {file: async () => candidate}});
+    const ownerWindow = {containerId: "owner-container", sessionId: "owner", canFocus: async () => true};
+    MarkdownWindows.add(ownerWindow, async () => {
+        if (failFocus) throw new Error("unavailable");
+        focused++; if (stale) host.documentEpoch++;
+    });
+    const result = await host.prepareTreeOpen({});
+    assert.equal(result.kind, "occupied"); assert.equal(result.sessionId, "owner"); assert.equal(focused, 1);
+    assert.equal(host.transactions, current); assert.equal(host.released, false); assert.equal(host.treeCandidate, undefined);
+    assert.equal((await current.read(operation(current))).kind, "read");
+    assert.equal((await owner.read(operation(owner))).kind, "read");
+    failFocus = true; assert.equal((await host.prepareTreeOpen({})).kind, "blocked");
+    failFocus = false; stale = true; assert.equal((await host.prepareTreeOpen({})).kind, "blocked");
+    stale = false;
+    let resolveAdmission;
+    let notifyAdmission;
+    const admissionStarted = new Promise(resolve => notifyAdmission = resolve);
+    ownerWindow.canFocus = () => new Promise(resolve => {resolveAdmission = resolve; notifyAdmission();});
+    const beforeFocus = focused;
+    const obsolete = host.prepareTreeOpen({});
+    await admissionStarted;
+    host.treeRequestEpoch++;
+    resolveAdmission(true);
+    assert.equal((await obsolete).kind, "blocked");
+    assert.equal(focused, beforeFocus, "a request invalidated during owner admission cannot focus another window");
+    assert.equal(host.treeOpening, false); assert.equal(h.content(candidate), "owner body");
+    MarkdownWindows.remove("owner-container"); await current.release(); await owner.release();
+});
+
 test("Harmony existing-window focus follows the current session and ignores closed or switched owners", async () => {
     const {MarkdownWindows} = load("MarkdownWindows");
     let focused = 0; const host = {containerId: "container", sessionId: "a", canFocus: async () => true};

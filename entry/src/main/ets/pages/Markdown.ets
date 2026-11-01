@@ -61,6 +61,10 @@ struct Markdown {
 
   private ui(): MarkdownNativeUI {
     return {
+      notice: (message: string) => {
+        // 新打开失败仅提示，不销毁当前文档及其桥接。
+        try { this.getUIContext().getPromptAction().showToast({ message: message }); } catch (error) { }
+      },
       failure: (message: string) => {
         this.resetChannel();
         this.host.pageReady('');

@@ -13,6 +13,7 @@ import { MarkdownTree, MarkdownTreeStore, MarkdownTreeIO, MarkdownTreeStat, Mark
 import { MarkdownResourceAccess, MarkdownResourceGrant, MarkdownResourceIO, MarkdownResourceStat, MarkdownImageIO, copyMarkdownImage } from './MarkdownResources';
 import { MarkdownPreferenceStore } from './MarkdownPreferences';
 import { MarkdownRecoveryTransfers, latestMarkdownRecovery } from './MarkdownRecovery';
+import { MarkdownWindows } from './MarkdownWindows';
 import { MarkdownOperation, MarkdownFormat, MarkdownCommit, MarkdownPrepared, MarkdownWatermark,
   MarkdownReceipt, MarkdownPreferences, MarkdownRecord, MarkdownState, MarkdownFailure, MARKDOWN_ORIGIN, MARKDOWN_PAGE,
   MARKDOWN_RECOVERY_CONTENT_LIMIT, MARKDOWN_ASSET_LIMIT, validMarkdownFormat, validMarkdownId, markdownErrorCode, MarkdownIOError } from './MarkdownTypes';
@@ -37,6 +38,7 @@ export interface MarkdownNativeUI {
   confirm: (title: string, message: string, choices: string[]) => Promise<number>;
   filename: (title: string, initial: string, accept: string, cancel: string) => Promise<string>;
   failure: (message: string) => void;
+  notice: (message: string) => void;
 }
 
 export class MarkdownOccupiedError extends Error {
@@ -92,7 +94,7 @@ export class MarkdownHost {
   readonly containerId: string;
   get sessionId(): string { return this.transactions.sessionId; }
   get targetURI(): string { return this.transactions.getURI(); }
-  reportOpenFailure(): void { this.ui?.failure(this.text('markdownFileUnavailable')); }
+  reportOpenFailure(): void { this.ui?.notice(this.text('markdownFileUnavailable')); }
   async canFocus(sessionId: string): Promise<boolean> {
     await this.transactions.settled();
     return !this.destroyed && !this.released && this.sessionId === sessionId;
@@ -439,6 +441,14 @@ export class MarkdownHost {
       transactions = new MarkdownTransactions(this.io.uuid(), this.io, MarkdownHost.store, markdownRegistry);
       const persistent = await persistMarkdownPermission(uri, true);
       const result = await transactions.authorize(uri, new fileUri.FileUri(uri).name, persistent, false);
+      if (result.kind === 'occupied' && result.sessionId) {
+        await transactions.release();
+        if (epoch !== this.documentEpoch || requestEpoch !== this.treeRequestEpoch || this.destroyed) throw new Error('protocol');
+        if (!await MarkdownWindows.focus(result.sessionId, () => epoch === this.documentEpoch &&
+          requestEpoch === this.treeRequestEpoch && !this.destroyed)) throw new Error('unavailable');
+        if (epoch !== this.documentEpoch || requestEpoch !== this.treeRequestEpoch || this.destroyed) throw new Error('protocol');
+        return { kind: 'occupied', sessionId: result.sessionId };
+      }
       if (result.kind !== 'read') { await transactions.release(); return { kind: result.kind, error: result.error }; }
       if (epoch !== this.documentEpoch || requestEpoch !== this.treeRequestEpoch || this.destroyed || await this.tree.file(location) !== uri) throw new Error('protocol');
       const ticket = this.io.uuid();
