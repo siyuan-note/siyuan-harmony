@@ -16,7 +16,7 @@ try {
         return target;
     });
     if (arkts && process.argv.includes("--ui")) {
-        for (const relative of ["../pages/Markdown.ets", "../entryability/MarkdownAbility.ets"]) {
+        for (const relative of ["../pages/Markdown.ets", "../entryability/MarkdownAbility.ets", "../entryability/MarkdownStage.ets"]) {
             const target = path.join(temporary, path.basename(relative));
             writeFileSync(target, readFileSync(path.join(directory, relative), "utf8").replaceAll("'../markdown/", "'./"));
             roots.push(target);

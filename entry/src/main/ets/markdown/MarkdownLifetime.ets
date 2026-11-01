@@ -9,6 +9,18 @@ export class MarkdownLifetime {
   private static participants: Map<string, MarkdownParticipant> = new Map();
   private static deferredWorkspaceExit?: () => Promise<void>;
   private static quitting: boolean = false;
+  private static deferredExitInProgress: boolean = false;
+  private static workspaceGeneration: number = 0;
+  static workspaceOpened(): void {
+    MarkdownLifetime.workspaceGeneration++;
+    MarkdownLifetime.deferredWorkspaceExit = undefined;
+    if (MarkdownLifetime.deferredExitInProgress) {
+      MarkdownLifetime.deferredExitInProgress = false;
+      MarkdownLifetime.quitting = false;
+    }
+  }
+  static workspaceToken(): number { return MarkdownLifetime.workspaceGeneration; }
+  static isCurrentWorkspace(token: number): boolean { return token === MarkdownLifetime.workspaceGeneration; }
   static add(id: string, participant: MarkdownParticipant): void {
     if (MarkdownLifetime.quitting) throw new Error('Markdown is closing');
     MarkdownLifetime.participants.set(id, participant);
@@ -18,6 +30,7 @@ export class MarkdownLifetime {
     if (MarkdownLifetime.participants.size === 0 && MarkdownLifetime.deferredWorkspaceExit) {
       const finish = MarkdownLifetime.deferredWorkspaceExit;
       MarkdownLifetime.deferredWorkspaceExit = undefined;
+      MarkdownLifetime.deferredExitInProgress = true;
       MarkdownLifetime.quitting = true;
       void finish();
     }
@@ -33,7 +46,10 @@ export class MarkdownLifetime {
   static isActive(id: string): boolean { return MarkdownLifetime.participants.has(id); }
   static deferWorkspaceExit(finish: () => Promise<void>): boolean {
     if (!MarkdownLifetime.hasDocuments()) return false;
-    MarkdownLifetime.deferredWorkspaceExit = finish;
+    const token = MarkdownLifetime.workspaceGeneration;
+    MarkdownLifetime.deferredWorkspaceExit = async () => {
+      if (MarkdownLifetime.isCurrentWorkspace(token)) await finish();
+    };
     return true;
   }
   static async prepareQuit(): Promise<boolean> {

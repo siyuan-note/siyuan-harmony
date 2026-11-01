@@ -16,7 +16,7 @@ function load(name, mocks = {}, cache = new Map()) {
     const module = {exports: {}};
     runInNewContext(result.outputText, {module, exports: module.exports, console, Date, Uint8Array, ArrayBuffer,
         setTimeout, clearTimeout, canIUse: () => true,
-        require: id => id.startsWith("./") ? load(id.slice(2), mocks, cache) : mocks[id] || {}});
+        require: id => mocks[id] || (id.startsWith("./") ? load(id.slice(2), mocks, cache) : {})});
     cache.set(name, module.exports);
     return module.exports;
 }
@@ -225,6 +225,128 @@ test("Harmony tree replacement preserves deferred workspace exit until the new d
     MarkdownLifetime.remove("next"); assert.equal(exited, 1);
 });
 
+test("Harmony workspace recreation revokes a previously deferred exit", async () => {
+    const {MarkdownLifetime} = load("MarkdownLifetime");
+    let exited = false;
+    MarkdownLifetime.add("document", {prepare: async () => true, cancel() {}, close: async () => true});
+    const token = MarkdownLifetime.workspaceToken();
+    MarkdownLifetime.deferWorkspaceExit(async () => {exited = true;});
+    MarkdownLifetime.workspaceOpened(); MarkdownLifetime.remove("document"); await Promise.resolve();
+    assert.equal(exited, false); assert.equal(MarkdownLifetime.isCurrentWorkspace(token), false);
+    MarkdownLifetime.add("another", {prepare: async () => true, cancel() {}, close: async () => true});
+});
+
+test("Harmony reopening during a deferred exit admits new documents without weakening explicit quit", async () => {
+    const {MarkdownLifetime} = load("MarkdownLifetime");
+    const participant = {prepare: async () => true, cancel() {}, close: async () => true};
+    let finish;
+    let exited = false;
+    const token = MarkdownLifetime.workspaceToken();
+    MarkdownLifetime.add("old", participant);
+    MarkdownLifetime.deferWorkspaceExit(async () => {
+        await new Promise(resolve => {finish = resolve;});
+        exited = MarkdownLifetime.isCurrentWorkspace(token);
+    });
+    MarkdownLifetime.remove("old");
+    MarkdownLifetime.workspaceOpened();
+    MarkdownLifetime.add("new", participant);
+    finish(); await Promise.resolve();
+    assert.equal(exited, false); assert.equal(MarkdownLifetime.isActive("new"), true);
+    assert.equal(await MarkdownLifetime.prepareQuit(), true);
+    MarkdownLifetime.workspaceOpened();
+    assert.throws(() => MarkdownLifetime.add("late", participant), /closing/);
+});
+
+test("Harmony manual root follows an outside Save As but survives ordinary outside navigation", async () => {
+    const h = treeHarness(); const next = "file://docs/next";
+    h.put(treeRoot, true); h.put(treeRoot + "/a.md"); h.put(next, true); h.put(next + "/b.md");
+    await h.tree.choose(treeRoot); const original = await h.tree.state();
+    await h.tree.follow(next + "/b.md"); assert.equal((await h.tree.state()).rootId, original.rootId);
+    await h.tree.follow(treeRoot + "/a.md", treeRoot, true); assert.equal((await h.tree.state()).rootId, original.rootId);
+    await h.tree.follow(next + "/b.md", next, true);
+    assert.notEqual((await h.tree.state()).rootId, original.rootId); assert.equal((await h.tree.state()).currentNodeId !== undefined, true);
+});
+
+test("Harmony escaped boundary operations commit, replay and reconcile with an independent fingerprint budget", async () => {
+    for (const text of ['"', '\\', '界']) {
+        const h = harness(); h.controls.chunk = Infinity;
+        const session = await open(h);
+        const request = operation(session, text.repeat(Math.floor(8 * 1024 * 1024 / Buffer.byteLength(text))));
+        h.controls.closeFailure = true;
+        assert.equal((await session.write(request)).kind, "indeterminate");
+        h.controls.closeFailure = false;
+        assert.equal((await session.reconcile(request)).kind, "committed");
+        assert.equal((await session.write(request)).kind, "committed");
+        assert.equal(h.content(source), request.content);
+    }
+});
+
+test("Harmony existing-window focus follows the current session and ignores closed or switched owners", async () => {
+    const {MarkdownWindows} = load("MarkdownWindows");
+    let focused = 0; const host = {containerId: "container", sessionId: "a", canFocus: async () => true};
+    MarkdownWindows.add(host, async () => {focused++;});
+    assert.equal(await MarkdownWindows.focus("a"), true);
+    host.sessionId = "b";
+    assert.equal(await MarkdownWindows.focus("a"), false);
+    assert.equal(await MarkdownWindows.focus("b"), true);
+    host.canFocus = async () => false; assert.equal(await MarkdownWindows.focus("b"), false);
+    MarkdownWindows.remove("container"); assert.equal(await MarkdownWindows.focus("b"), false);
+    assert.equal(focused, 2);
+});
+
+test("Harmony specified routing focuses an occupied alias and retires only its new container", async () => {
+    const {MarkdownWindows} = load("MarkdownWindows");
+    class Occupied extends Error {constructor(id) {super("occupied"); this.sessionId = id;}}
+    let ids = 0; let focused = 0; let terminated = 0; let loads = 0;
+    class Host {
+        constructor() {this.containerId = "container-" + ++ids; this.sessionId = "new"; this.targetURI = "file://B";}
+        async initialize() {throw new Occupied("owner");}
+        async canFocus() {return true;}
+        destroy() {this.destroyed = true;}
+        startupError() {return "";}
+    }
+    const owner = new Host(); owner.sessionId = "owner";
+    MarkdownWindows.add(owner, async () => {focused++;});
+    const {default: Ability} = load("../entryability/MarkdownAbility", {
+        "@kit.AbilityKit": {UIAbility: class {}}, "BuildProfile": {default: {DEBUG: true}},
+        "@kit.ArkWeb": {webview: {WebviewController: {setWebDebuggingAccess() {}}}},
+        "@kit.ArkTS": {util: {generateRandomUUID: () => "fresh-key"}},
+        "../markdown/MarkdownWindows": {MarkdownWindows},
+        "../markdown/MarkdownHost": {MarkdownHost: Host, MarkdownOccupiedError: Occupied},
+        "../markdown/MarkdownFiles": {canonicalMarkdownURI: value => value},
+        "./MarkdownStage": {markdownInstanceKey: want => want.uri}
+    });
+    const ability = new Ability();
+    ability.context = {abilityInfo: {bundleName: "test"}, terminateSelf: async () => {terminated++;},
+        resourceManager: {getStringByNameSync: () => "failure"}};
+    ability.onCreate({uri: "file://alias"}, {}); await ability.initialized;
+    await ability.onWindowStageCreate({loadContent: async () => {loads++;}});
+    assert.equal(focused, 1); assert.equal(terminated, 1); assert.equal(loads, 0);
+    assert.equal(MarkdownWindows.get(owner.containerId), owner); assert.equal(ability.failure, "");
+    const starts = [];
+    ability.host = new Host(); ability.context.startAbility = async want => {starts.push(want);};
+    ability.onNewWant({uri: "file://A", flags: 7});
+    assert.equal(starts[0].parameters.markdownInstanceKey, "fresh-key");
+    assert.equal(starts[0].flags, 7); assert.equal(ability.host.targetURI, "file://B");
+    Host.prototype.initialize = async () => {};
+    const current = new Ability(); current.context = ability.context;
+    current.onCreate({uri: "file://original-key"}, {}); await current.initialized;
+    assert.equal(await MarkdownWindows.focus(current.host.sessionId), true);
+    assert.equal(starts.at(-1).parameters.markdownInstanceKey, "file://original-key");
+    assert.equal(starts.at(-1).parameters.markdownFocus, true);
+    assert.equal(starts.at(-1).uri, "file://B", "focus carries the current URI if the system must recreate a closing owner");
+});
+
+test("Harmony specified stage reuses a supplied owner key across different URI spellings", () => {
+    const {default: Stage} = load("../entryability/MarkdownStage", {"@kit.AbilityKit": {AbilityStage: class {}}});
+    const stage = new Stage();
+    assert.equal(stage.onAcceptWant({uri: "file://a"}), "file://a");
+    assert.equal(stage.onAcceptWant({uri: "file://alias", parameters: {markdownInstanceKey: "file://a"}}), "file://a");
+    const manifest = readFileSync(resolve(directory, "../../module.json5"), "utf8");
+    assert.match(manifest, /"launchType": "specified"/);
+    assert.match(manifest, /"srcEntry": "\.\/ets\/entryability\/MarkdownStage\.ets"/);
+});
+
 test("Harmony unavailable current files clear selection while accessible siblings and root remain navigable", async () => {
     const h = treeHarness(); h.put(treeRoot, true); h.put(treeRoot + "/a.md"); h.put(treeRoot + "/b.md");
     await h.tree.follow(treeRoot + "/a.md", treeRoot);
@@ -244,6 +366,19 @@ test("Harmony unavailable current files clear selection while accessible sibling
     assert.equal((await h.tree.list(treeLocation(subtree))).kind, "listed");
     h.controls.deniedList.add(treeRoot);
     assert.equal((await h.tree.state()).kind, "blocked", "root permission failure remains visible");
+});
+
+test("Harmony cancelling a tree candidate publishes the deferred Save As root after following it", async () => {
+    const {MarkdownHost} = load("MarkdownHost");
+    const host = Object.create(MarkdownHost.prototype);
+    const events = [];
+    Object.assign(host, {treeCandidate: {transactions: {release: async () => {events.push("released");}}},
+        treeFollowAfterCancel: "file://next", transactions: {getURI: () => "file://next/new.md"},
+        tree: {follow: async (uri, directory, afterSaveAs) => {events.push([uri, directory, afterSaveAs]);}},
+        command: async event => {events.push(event); return true;}});
+    await host.cancelTreeCandidate();
+    assert.deepEqual(events, ["released", ["file://next/new.md", "file://next", true], "tree-change"]);
+    assert.equal(host.treeCandidate, undefined); assert.equal(host.treeFollowAfterCancel, undefined);
 });
 
 test("Harmony actual host prepares a second session, rejects early commit and atomically swaps after release with replayable ack", async () => {

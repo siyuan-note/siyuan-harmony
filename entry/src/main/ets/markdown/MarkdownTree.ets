@@ -153,9 +153,10 @@ export class MarkdownTree {
     entries.forEach((entry: TreeEntry) => this.nodes.set(entry.id, entry));
     this.signatures.set(id, this.signature(entries));
   }
-  async follow(uri: string, authorizedDirectory: string = ''): Promise<void> {
+  async follow(uri: string, authorizedDirectory: string = '', afterSaveAs: boolean = false): Promise<void> {
     this.current = uri;
-    if (this.manual || (this.root && uri.startsWith(this.root.uri + '/'))) return;
+    if ((this.root && uri.startsWith(this.root.uri + '/')) || (this.manual && !afterSaveAs)) return;
+    if (afterSaveAs) this.manual = false;
     const ticket = ++this.epoch;
     this.generation++; this.root = undefined; this.nodes.clear(); this.signatures.clear();
     this.unavailable = uri.length > 0; this.rootName = uri ? this.io.name(this.io.parent(uri)) : '';

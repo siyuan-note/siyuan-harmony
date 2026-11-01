@@ -210,7 +210,13 @@ export struct Utils {
     }
   }
 
+  static workspaceOpened(): void {
+    MarkdownLifetime.workspaceOpened();
+    Utils.terminating = false;
+  }
+
   static async exitFromAbilityDestroy(): Promise<void> {
+    const workspace = MarkdownLifetime.workspaceToken();
     if (Utils.terminating) {
       return;
     }
@@ -220,11 +226,13 @@ export struct Utils {
     Utils.terminating = true;
     hilog.info(0x0000, "siyuan", "exit siyuan app from ability destroy")
     await Utils.saveCookiesBeforeExit();
+    if (!MarkdownLifetime.isCurrentWorkspace(workspace)) return;
     LANSyncMDNS.shared.stop();
 
     try {
       if (napi.isHttpServing()) {
         const exitCode = await Utils.requestKernelExit(false);
+        if (!MarkdownLifetime.isCurrentWorkspace(workspace)) return;
         if (typeof exitCode === "number" && exitCode !== 0 && napi.isHttpServing()) {
           hilog.warn(0x0000, "siyuan", "graceful kernel exit failed [code=" + exitCode + "]");
           await Utils.requestKernelExit(true);
@@ -234,6 +242,7 @@ export struct Utils {
       hilog.error(0x0000, "siyuan", "graceful kernel exit failed: " + err);
     }
 
+    if (!MarkdownLifetime.isCurrentWorkspace(workspace)) return;
     try {
       backgroundTaskManager.stopBackgroundRunning(Utils.getContext());
     } catch (err) {

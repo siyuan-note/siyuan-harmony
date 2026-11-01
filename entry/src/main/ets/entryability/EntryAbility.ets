@@ -33,6 +33,7 @@ import { Utils } from '../pages/Utils';
  */
 export default class EntryAbility extends UIAbility {
   onCreate(want: Want, launchParam: AbilityConstant.LaunchParam): void {
+    Utils.workspaceOpened();
     // 在创建 Web 组件前按构建模式设置调试权限，发布版保持关闭。
     webview.WebviewController.setWebDebuggingAccess(BuildProfile.DEBUG);
     hilog.info(0x0000, "siyuan", 'ability onCreate [launchParam=' + JSON.stringify(launchParam) + "]");
@@ -41,6 +42,7 @@ export default class EntryAbility extends UIAbility {
   }
 
   onNewWant(want: Want, launchParam: AbilityConstant.LaunchParam): void {
+    Utils.workspaceOpened();
     hilog.info(0x0000, "siyuan", 'ability onNewWant [launchParam=' + JSON.stringify(launchParam) + "]");
     this.handleOIDCCallback(want);
   }

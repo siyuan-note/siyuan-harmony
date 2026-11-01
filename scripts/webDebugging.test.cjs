@@ -20,6 +20,7 @@ const load = debug => {
         } } },
         "BuildProfile": { __esModule: true, default: { DEBUG: debug } },
         "../pages/Utils": { Utils: {
+            workspaceOpened: () => calls.push(["workspace-opened"]),
             initAppearance: async () => {},
             isFirstRun: () => false,
         } },
@@ -46,6 +47,6 @@ for (const debug of [true, false]) {
             getMainWindowSync: () => ({ setWindowLayoutFullScreen() {}, setSpecificSystemBarEnabled() {} }),
             loadContent: page => calls.push(["load", page]),
         });
-        assert.deepEqual(calls, [["web-debugging", debug], ["load", "pages/Main"]]);
+        assert.deepEqual(calls, [["workspace-opened"], ["web-debugging", debug], ["load", "pages/Main"]]);
     });
 }

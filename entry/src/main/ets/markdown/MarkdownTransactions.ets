@@ -186,7 +186,8 @@ export class MarkdownTransactions {
       if (grant.reservationId && (grant.operationId !== request.operationId || grant.generation !== this.generation + 1 ||
         !this.sameOperation(request, this.record().prepared?.operation))) return markdownBlocked();
       let bytes: Uint8Array;
-      try { bytes = this.io.encode(request.content, request.target.format); }
+      let fingerprint: string;
+      try { bytes = this.io.encode(request.content, request.target.format); fingerprint = this.fingerprint(request); }
       catch (error) { return markdownBlocked((error as Error).message === 'size' ? 'size' : 'encoding'); }
       const separator = request.operationId.lastIndexOf(':');
       const namespace = request.operationId.slice(0, separator);
@@ -202,7 +203,7 @@ export class MarkdownTransactions {
         grant.highestSequence = -1;
       }
       if (grant.lastOperationId === request.operationId) {
-        if (this.fingerprint(request) !== grant.lastFingerprint) return markdownBlocked();
+        if (fingerprint !== grant.lastFingerprint) return markdownBlocked();
         return { kind: 'committed', baseline: grant.resultBaseline, durability: 'provider' };
       }
       if (sequence <= grant.highestSequence) return markdownBlocked();
@@ -255,7 +256,7 @@ export class MarkdownTransactions {
         await this.store.write(record);
         grant.lastOperationId = request.operationId;
         grant.lastRevision = request.revision;
-        grant.lastFingerprint = this.fingerprint(request);
+        grant.lastFingerprint = fingerprint;
         if (!grant.reservationId) { grant.pending = undefined; grant.original = undefined; }
         result = { kind: 'committed', baseline: finalSnapshot.baseline, durability: 'provider' };
       } catch (error) {
@@ -371,7 +372,8 @@ export class MarkdownTransactions {
     return right !== undefined && this.fingerprint(left) === this.fingerprint(right);
   }
   private fingerprint(request: MarkdownOperation): string {
-    return this.io.digest(this.io.encode(JSON.stringify(request), { bom: false, newline: '\n' }, MARKDOWN_RECOVERY_CONTENT_LIMIT));
+    // 请求转义最多把正文扩张六倍，指纹预算独立于恢复正文预算，并在任何写入前校验。
+    return this.io.digest(this.io.encode(JSON.stringify(request), { bom: false, newline: '\n' }, 64 * 1024 * 1024));
   }
 
   putDraft(request: MarkdownOperation): Promise<void> {

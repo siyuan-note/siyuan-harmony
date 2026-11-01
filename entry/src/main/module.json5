@@ -2,6 +2,7 @@
   "module": {
     "name": "entry",
     "type": "entry",
+    "srcEntry": "./ets/entryability/MarkdownStage.ets",
     "description": "$string:module_desc",
     "mainElement": "EntryAbility",
     "deviceTypes": [
@@ -64,7 +65,7 @@
         "startWindowIcon": "$media:startIcon",
         "startWindowBackground": "$color:white",
         "exported": true,
-        "launchType": "standard",
+        "launchType": "specified",
         "skills": [{
           "actions": ["ohos.want.action.viewData"],
           "uris": [

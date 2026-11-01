@@ -17,6 +17,7 @@
  */
 
 import { Utils } from './Utils';
+import { util } from '@kit.ArkTS';
 import window from '@ohos.window';
 import hilog from '@ohos.hilog';
 import { BusinessError } from '@ohos.base';
@@ -176,7 +177,8 @@ export struct JSHarmony {
 
   openMarkdownEditor(): void {
     const context = Utils.getContext();
-    void context.startAbility({ bundleName: context.abilityInfo.bundleName, abilityName: 'MarkdownAbility' });
+    void context.startAbility({ bundleName: context.abilityInfo.bundleName, abilityName: 'MarkdownAbility',
+      parameters: { markdownInstanceKey: util.generateRandomUUID() } });
   }
 
   returnDesktop() {

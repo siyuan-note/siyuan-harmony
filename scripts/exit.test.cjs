@@ -10,6 +10,7 @@ const ts = require(require.resolve("typescript", {
 const createHarness = (saveCookie) => {
     const events = [];
     let timeout;
+    let generation = 0;
     const bundleManager = {
         BundleFlag: { GET_BUNDLE_INFO_WITH_APPLICATION: 0 },
         getBundleInfoForSelfSync: () => ({ versionName: "test", versionCode: 1, name: "test" }),
@@ -27,6 +28,9 @@ const createHarness = (saveCookie) => {
             hasDocuments: () => false,
             prepareQuit: async () => true,
             deferWorkspaceExit: () => false,
+            workspaceOpened: () => {generation++;},
+            workspaceToken: () => generation,
+            isCurrentWorkspace: token => token === generation,
         } },
         "@kit.BackgroundTasksKit": { backgroundTaskManager: { stopBackgroundRunning() {} } },
         "libentry.so": { default: {
@@ -97,3 +101,12 @@ for (const method of ["exit", "exitFromAbilityDestroy"]) {
         assert.equal(harness.hasTimer(), false);
     });
 }
+
+test("reopening the workspace during delayed persistence cancels the old ability-destroy exit", async () => {
+    let complete;
+    const h = createHarness(() => new Promise(resolve => {complete = resolve;}));
+    const pending = h.Utils.exitFromAbilityDestroy();
+    h.Utils.workspaceOpened(); complete(); await pending;
+    assert.equal(h.events.includes("exit"), false);
+    assert.equal(h.events.includes("terminate"), false);
+});

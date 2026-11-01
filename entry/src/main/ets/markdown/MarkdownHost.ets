@@ -39,6 +39,11 @@ export interface MarkdownNativeUI {
   failure: (message: string) => void;
 }
 
+export class MarkdownOccupiedError extends Error {
+  readonly sessionId: string;
+  constructor(sessionId: string) { super('occupied'); this.sessionId = sessionId; }
+}
+
 export class MarkdownHost {
   private static store?: HarmonyMarkdownStore;
   private static preferences?: MarkdownPreferenceStore;
@@ -83,8 +88,15 @@ export class MarkdownHost {
   private treePolling: boolean = false;
   private treeWatchers: Map<string, fs.Watcher> = new Map();
   private saveAsDirectories: Map<string, string> = new Map();
+  private treeFollowAfterCancel?: string;
   readonly containerId: string;
   get sessionId(): string { return this.transactions.sessionId; }
+  get targetURI(): string { return this.transactions.getURI(); }
+  reportOpenFailure(): void { this.ui?.failure(this.text('markdownFileUnavailable')); }
+  async canFocus(sessionId: string): Promise<boolean> {
+    await this.transactions.settled();
+    return !this.destroyed && !this.released && this.sessionId === sessionId;
+  }
 
   constructor(context: common.UIAbilityContext) {
     this.context = context;
@@ -169,6 +181,7 @@ export class MarkdownHost {
       if (!new RegExp("\\.(md|markdown)$", "i").test(name)) throw new Error(this.text('markdownFileUnavailable'));
       const persistent = await persistMarkdownPermission(canonical, true);
       const result = await this.transactions.authorize(canonical, name, persistent, false);
+      if (result.kind === 'occupied' && result.sessionId) throw new MarkdownOccupiedError(result.sessionId);
       if (result.kind !== 'read') {
         const keys: Record<string, string> = { 'size': 'markdownTooLarge', 'encoding': 'agentSkillEncodingTip',
           'permission': 'markdownPermissionDenied', 'offline': 'markdownFileOffline', 'deleted': 'markdownFileDeleted',
@@ -284,6 +297,7 @@ export class MarkdownHost {
       MarkdownLifetime.replace(this.sessionId, candidate.transactions.sessionId);
       this.documentEpoch++; this.transactions = candidate.transactions; this.initialContent = candidate.content; this.initialFormat = candidate.format;
       this.treeCandidate = undefined; this.treeCommitted = ticket; this.released = false; this.recovered = false;
+      this.treeFollowAfterCancel = undefined;
       this.resources.clear(); this.imageFiles.clear(); this.directory = ''; this.observedVersion = '';
       void this.tree.follow(this.transactions.getURI());
       return this.initialBootstrap();
@@ -304,7 +318,9 @@ export class MarkdownHost {
         this.resources.clear(); this.imageFiles.clear(); this.directory = '';
         const selectedDirectory = this.saveAsDirectories.get(this.transactions.getTarget()?.handle ?? '') ?? '';
         this.saveAsDirectories.clear();
-        await this.tree.follow(this.transactions.getURI(), selectedDirectory).catch(() => {}); void this.command('tree-change');
+        if (this.treeCandidate) this.treeFollowAfterCancel = selectedDirectory;
+        else await this.tree.follow(this.transactions.getURI(), selectedDirectory, true).catch(() => {});
+        void this.command('tree-change');
       }
       return result;
     }
@@ -405,6 +421,11 @@ export class MarkdownHost {
     if (!candidate) return;
     this.treeCandidate = undefined;
     await candidate.transactions.release();
+    if (this.treeFollowAfterCancel !== undefined) {
+      const directory = this.treeFollowAfterCancel; this.treeFollowAfterCancel = undefined;
+      await this.tree.follow(this.transactions.getURI(), directory, true);
+      void this.command('tree-change');
+    }
   }
   private async prepareTreeOpen(location: MarkdownTreeLocation): Promise<TreeOpenResult> {
     if (this.treeOpening || this.treeCandidate || this.released || this.destroyed) throw new Error('protocol');
@@ -440,7 +461,7 @@ export class MarkdownHost {
     if (token) MarkdownHost.recoveryTransfers.grant(token, recoveryId, Date.now());
     try {
       await this.context.startAbility({ bundleName: this.context.abilityInfo.bundleName, abilityName: 'MarkdownAbility',
-        uri: uri, parameters: { markdownRecovery: token } });
+        uri: uri, parameters: { markdownRecovery: token, markdownInstanceKey: uri || this.io.uuid() } });
     } catch (error) { if (token) MarkdownHost.recoveryTransfers.cancel(token); throw error as Error; }
   }
 
