@@ -57,6 +57,25 @@
         ],
       },
       {
+        "name": "MarkdownAbility",
+        "srcEntry": "./ets/entryability/MarkdownAbility.ets",
+        "description": "$string:markdown_label",
+        "label": "$string:markdown_label",
+        "startWindowIcon": "$media:startIcon",
+        "startWindowBackground": "$color:white",
+        "exported": true,
+        "launchType": "standard",
+        "skills": [{
+          "actions": ["ohos.want.action.viewData"],
+          "uris": [
+            { "scheme": "file", "host": "*", "utd": "general.markdown", "maxFileSupported": 1 },
+            { "scheme": "file", "host": "*", "type": "text/markdown" },
+            { "scheme": "file", "host": "*", "type": "text/plain", "pathRegex": ".*\\.(md|markdown)$" }
+          ]
+        }],
+        "orientation": "auto_rotation_restricted"
+      },
+      {
         "name": "ShorthandAbility",
         "srcEntry": "./ets/entryability/ShorthandAbility.ets",
         "description": "$string:shorthand_label",
@@ -135,6 +154,9 @@
       }
     ],
     "requestPermissions": [
+      {
+        "name": "ohos.permission.FILE_ACCESS_PERSIST"
+      },
       {
         "name": "ohos.permission.INTERNET"
       },

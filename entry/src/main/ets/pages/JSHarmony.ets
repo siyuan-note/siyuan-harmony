@@ -174,6 +174,11 @@ export struct JSHarmony {
     void Utils.exit();
   }
 
+  openMarkdownEditor(): void {
+    const context = Utils.getContext();
+    void context.startAbility({ bundleName: context.abilityInfo.bundleName, abilityName: 'MarkdownAbility' });
+  }
+
   returnDesktop() {
     const context = Utils.getContext();
     context.moveAbilityToBackground();

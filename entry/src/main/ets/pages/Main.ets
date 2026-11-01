@@ -231,6 +231,7 @@ struct Main {
           this.controller.registerJavaScriptProxy(this.jsHarmony, "JSHarmony",
             [
               "exportByDefault",
+              "openMarkdownEditor",
               "saveExportFile",
               "saveExportFileV2",
               "openExternal",

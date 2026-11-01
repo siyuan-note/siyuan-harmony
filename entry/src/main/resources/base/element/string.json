@@ -1,6 +1,14 @@
 {
   "string": [
     {
+      "name": "markdown_load_error",
+      "value": "无法打开 Markdown 编辑器，请返回后重新选择文件"
+    },
+    {
+      "name": "markdown_label",
+      "value": "Markdown 编辑器"
+    },
+    {
       "name": "kernel_start_wait_hint",
       "value": "下次请通过应用菜单中的「退出应用」关闭思源，以便正常重新打开"
     },

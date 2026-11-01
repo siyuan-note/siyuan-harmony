@@ -23,6 +23,11 @@ const createHarness = (saveCookie) => {
             info() {}, error() { events.push("error"); },
         } },
         "./LANSyncMDNS": { LANSyncMDNS: { shared: { stop() {} } } },
+        "../markdown/MarkdownLifetime": { MarkdownLifetime: {
+            hasDocuments: () => false,
+            prepareQuit: async () => true,
+            deferWorkspaceExit: () => false,
+        } },
         "@kit.BackgroundTasksKit": { backgroundTaskManager: { stopBackgroundRunning() {} } },
         "libentry.so": { default: {
             isHttpServing: () => false,

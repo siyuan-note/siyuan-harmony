@@ -23,3 +23,13 @@ Directory structure reference:
 ![project-tree](project-tree.png)
 
 ![app.zip](app-zip.png)
+
+## Standalone Markdown host
+
+The shared frontend resource bundle must include `stage/build/markdown/` and `appearance/langs/`. `MarkdownAbility` opens the editor without starting the workspace or Go kernel. It uses a restricted native message channel, native file grants, and private recovery records excluded from system backup. Save As chooses a directory and then a new filename so the host can reserve the target before creating it. Writable providers use checked in-place writes; the receipt means the provider accepted the content, not that cloud synchronization has finished. Persistent permission is attempted when supported; otherwise the editor reports temporary permission.
+
+The file panel lists real folders and `.md`/`.markdown` documents lazily. A single-file grant does not authorize its parent directory: choose a folder when prompted; cancelling leaves the current document editable. Folder grants are separate from image grants. Switching reads and reserves the next document before saving or retaining the current draft, then changes the document inside the same editor container. The panel keeps its root for documents inside it, remembers width and expansion in a separate versioned private record, and refreshes through directory watchers with foreground polling for providers that do not support watching. Directory metadata calls convert authorized URIs to native paths for API 18–20 compatibility; they do not rely on URI support introduced in API 22.
+
+`MarkdownAbility` shares the application process. Normal workspace closure defers process exit while Markdown documents remain open, but a Go panic or process termination can still stop the editor. Recovery then depends on the private records already persisted. Original-file writes are limited to 64 KiB of UTF-8, including a BOM; private drafts have an independent 16 MiB content budget. Static assets and raster images have separate 16 MiB and 32 MiB limits.
+
+Run `node --test scripts/markdown.test.cjs scripts/exit.test.cjs` for provider fault injection and lifecycle tests. `node scripts/markdown-typecheck.cjs --arkts --ui` uses the installed Harmony SDK for checks without building the application; set `DEVECO_STUDIO_HOME` when needed and use `--warnings` to inspect SDK diagnostics. Tests use injected provider operations and do not replace device verification of ArkWeb initialization, document providers, persistent grants, lifecycle callbacks, or system backup exclusion.

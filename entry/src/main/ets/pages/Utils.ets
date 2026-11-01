@@ -34,6 +34,7 @@ import { PrintParam } from './Print';
 import { connection, http } from '@kit.NetworkKit';
 import { LANSyncMDNS } from './LANSyncMDNS';
 import { webview } from '@kit.ArkWeb';
+import { MarkdownLifetime } from '../markdown/MarkdownLifetime';
 
 interface SystemExitResponse {
   code: number;
@@ -185,6 +186,10 @@ export struct Utils {
       return;
     }
     Utils.terminating = true;
+    if (MarkdownLifetime.hasDocuments() && !await MarkdownLifetime.prepareQuit()) {
+      Utils.terminating = false;
+      return;
+    }
     hilog.info(0x0000, "siyuan", "exit siyuan app")
     await Utils.saveCookiesBeforeExit();
     LANSyncMDNS.shared.stop();
@@ -207,6 +212,9 @@ export struct Utils {
 
   static async exitFromAbilityDestroy(): Promise<void> {
     if (Utils.terminating) {
+      return;
+    }
+    if (MarkdownLifetime.deferWorkspaceExit(() => Utils.exitFromAbilityDestroy())) {
       return;
     }
     Utils.terminating = true;

@@ -1,6 +1,14 @@
 {
   "string": [
     {
+      "name": "markdown_load_error",
+      "value": "Unable to open the Markdown editor; go back and choose the file again"
+    },
+    {
+      "name": "markdown_label",
+      "value": "Markdown editor"
+    },
+    {
       "name": "kernel_start_wait_hint",
       "value": "Next time, close SiYuan using “Quit application” in the app menu so it can reopen normally"
     },

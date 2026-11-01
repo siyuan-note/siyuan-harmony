@@ -3,6 +3,7 @@
     "pages/Agreement",
     "pages/Main",
     "pages/Print",
-    "pages/Shorthand"
+    "pages/Shorthand",
+    "pages/Markdown"
   ]
 }
