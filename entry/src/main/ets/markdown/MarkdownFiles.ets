@@ -1,3 +1,4 @@
+import { newMarkdownId, newMarkdownToken } from './MarkdownIds';
 import { fileIo as fs, fileShare, fileUri, hash } from '@kit.CoreFileKit';
 import { common } from '@kit.AbilityKit';
 import { util } from '@kit.ArkTS';
@@ -92,7 +93,8 @@ export class HarmonyMarkdownIO implements MarkdownIO {
     return bytes;
   }
   digest(bytes: Uint8Array): string { return digest(bytes); }
-  uuid(): string { return util.generateRandomUUID(true); }
+  newId(): string { return newMarkdownId(); }
+  token(): string { return newMarkdownToken(); }
 }
 
 export function canonicalMarkdownURI(value: string): string {
@@ -224,7 +226,11 @@ export class MarkdownAssets {
   private static async extract(context: common.UIAbilityContext, versionCode: string): Promise<string> {
     if (!new RegExp("^[0-9]+$").test(versionCode)) throw new Error('version');
     const root = context.cacheDir + '/markdown-runtime-' + versionCode;
-    if (fs.accessSync(root + '/.ready')) return root;
+    const parser = root + '/stage/protyle/js/lute/lute.min.js';
+    const legacyParser = root + '/stage/build/markdown/vditor/dist/js/lute/lute.min.js';
+    if (fs.accessSync(root + '/.ready') && fs.accessSync(parser) && !fs.accessSync(legacyParser)) return root;
+    // Invalidate completion before extracting, including retries after a partial refresh.
+    if (fs.accessSync(root + '/.ready')) await fs.unlink(root + '/.ready');
     fs.mkdirSync(root, true);
     const archive = root + '/app.zip';
     const file: fs.File = await fs.open(archive, fs.OpenMode.CREATE | fs.OpenMode.TRUNC | fs.OpenMode.READ_WRITE);
@@ -240,6 +246,8 @@ export class MarkdownAssets {
     } finally { await fs.close(file); }
     await zlib.decompressFile(archive, root);
     if (!fs.accessSync(root + '/stage/build/markdown/index.html')) throw new Error('Markdown assets unavailable');
+    if (!fs.accessSync(parser)) throw new Error('Markdown parser unavailable');
+    if (fs.accessSync(legacyParser)) await fs.unlink(legacyParser);
     await writeMarkdownAtomic(root + '/.ready', versionCode);
     await fs.unlink(archive);
     return root;

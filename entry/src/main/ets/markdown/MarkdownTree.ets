@@ -1,4 +1,5 @@
 import { MarkdownFailure, markdownErrorCode, MarkdownIOError } from './MarkdownTypes';
+import { newMarkdownId } from './MarkdownIds';
 
 export interface MarkdownTreeStat { identity: string; directory: boolean; file: boolean; symlink: boolean; }
 export interface MarkdownTreeIO {
@@ -15,7 +16,8 @@ export interface MarkdownTreeLocation { rootId: string; generation: number; node
 export interface MarkdownTreeView { rootId?: string; generation?: number; expanded?: string[]; width?: number; visible?: boolean; }
 export interface MarkdownTreeNode { id: string; name: string; kind: string; }
 interface TreeEntry { id: string; uri: string; identity: string; directory: boolean; parents: string[]; }
-export interface MarkdownTreeRootView { id: string; uri: string; identity: string; expanded: string[]; }
+interface MarkdownTreeNodeId { key: string; id: string; }
+export interface MarkdownTreeRootView { id: string; uri: string; identity: string; expanded: string[]; nodeIds?: MarkdownTreeNodeId[]; }
 interface TreeViewFile { version: number; width: number; visible: boolean; roots: MarkdownTreeRootView[]; }
 export interface MarkdownTreeState {
   kind: string; generation: number; expanded: string[]; width: number; visible: boolean;
@@ -25,7 +27,7 @@ export interface MarkdownTreeListing {
   kind: string; rootId?: string; generation?: number; nodeId?: string; entries?: MarkdownTreeNode[]; error?: MarkdownFailure;
 }
 
-function validID(value: string): boolean { return typeof value === 'string' && new RegExp('^[a-f0-9]{64}$').test(value); }
+function validID(value: string): boolean { return typeof value === 'string' && new RegExp('^[0-9]{14}-[a-z0-9]{7}$').test(value); }
 function failure(error: MarkdownIOError): MarkdownFailure { return { code: markdownErrorCode(error), recoverable: true }; }
 
 // 与正文偏好隔离。所有容器共享串行读合并写，损坏或未知版本保持原件并拒绝覆盖。
@@ -34,6 +36,33 @@ export class MarkdownTreeStore {
   private writable: boolean = true;
   private queue: Promise<void> = Promise.resolve();
   private persist: (text: string) => Promise<void>;
+  private identifiers: Map<string, Map<string, string>> = new Map();
+  private rootIdentifiers: Map<string, string> = new Map();
+  rootID(uri: string, identity: string): string {
+    const roots = this.get().roots;
+    const previous = roots.find((item: MarkdownTreeRootView) => item.uri === uri && item.identity === identity);
+    if (previous) return previous.id;
+    const key = uri + '\u0000' + identity;
+    const cached = this.rootIdentifiers.get(key); if (cached) return cached;
+    const used = new Set<string>(Array.from(this.rootIdentifiers.values())); roots.forEach((item: MarkdownTreeRootView) => used.add(item.id));
+    for (let attempt = 0; attempt < 32; attempt++) { const id = newMarkdownId(); if (!used.has(id)) { this.rootIdentifiers.set(key, id); return id; } }
+    throw new Error('io');
+  }
+  nodeID(rootID: string, key: string): string {
+    let ids = this.identifiers.get(rootID);
+    if (!ids) { ids = new Map(); this.identifiers.set(rootID, ids); }
+    const cached = ids.get(key); if (cached) return cached;
+    const root = this.get().roots.find((item: MarkdownTreeRootView) => item.id === rootID);
+    const saved = root?.nodeIds?.find((item: MarkdownTreeNodeId) => item.key === key)?.id;
+    if (saved) { ids.set(key, saved); return saved; }
+    if (ids.size >= 10000) throw new Error('size');
+    const used = new Set<string>(Array.from(ids.values())); used.add(rootID);
+    root?.nodeIds?.forEach((item: MarkdownTreeNodeId) => used.add(item.id)); root?.expanded.forEach((id: string) => used.add(id));
+    for (let attempt = 0; attempt < 32; attempt++) {
+      const id = newMarkdownId(); if (!used.has(id)) { ids.set(key, id); return id; }
+    }
+    throw new Error('io');
+  }
   constructor(text: string | undefined, persist: (text: string) => Promise<void>) {
     this.persist = persist;
     if (text === undefined) return;
@@ -44,6 +73,10 @@ export class MarkdownTreeStore {
       for (const root of record.roots) {
         if (!validID(root.id) || typeof root.uri !== 'string' || typeof root.identity !== 'string' ||
           !Array.isArray(root.expanded) || root.expanded.length > 256 || !root.expanded.every(validID)) throw new Error('protocol');
+        if (root.nodeIds !== undefined && (!Array.isArray(root.nodeIds) || root.nodeIds.length > 256 ||
+          !root.nodeIds.every((item: MarkdownTreeNodeId) => new RegExp('^[a-f0-9]{64}$').test(item.key) && validID(item.id)))) throw new Error('protocol');
+        if (root.nodeIds && (new Set(root.nodeIds.map((item: MarkdownTreeNodeId) => item.key)).size !== root.nodeIds.length ||
+          new Set([root.id].concat(root.nodeIds.map((item: MarkdownTreeNodeId) => item.id))).size !== root.nodeIds.length + 1)) throw new Error('protocol');
       }
       this.value = record;
     } catch (error) { this.writable = false; }
@@ -65,6 +98,10 @@ export class MarkdownTreeStore {
         const expanded = patch.expanded ?? previous?.expanded ?? [];
         if (!Array.isArray(expanded) || expanded.length > 256 || !expanded.every(validID)) throw new Error('protocol');
         const saved: MarkdownTreeRootView = { id: root.id, uri: root.uri, identity: root.identity, expanded: expanded.slice() };
+        const mappings = new Map<string, string>();
+        previous?.nodeIds?.forEach((item: MarkdownTreeNodeId) => { if (expanded.includes(item.id)) mappings.set(item.key, item.id); });
+        this.identifiers.get(root.id)?.forEach((id: string, key: string) => { if (expanded.includes(id)) mappings.set(key, id); });
+        saved.nodeIds = Array.from(mappings.entries()).map((item: [string, string]): MarkdownTreeNodeId => ({key: item[0], id: item[1]}));
         value.roots = [saved].concat(value.roots.filter((item: MarkdownTreeRootView) => item.id !== root.id)).slice(0, 16);
       }
       await this.persist(JSON.stringify(value)); this.value = value;
@@ -121,7 +158,7 @@ export class MarkdownTree {
       catch (error) { continue; } // 单个子项消失或撤权不能使仍可用的父目录失效。
       if (stat.symlink || (!stat.directory && (!stat.file || !new RegExp('\\.(md|markdown)$', 'i').test(name)))) continue;
       if (stat.directory && (stat.identity === root.identity || parents.some((id: string) => this.nodes.get(id)?.identity === stat.identity))) continue;
-      const id = this.io.hash(root.id + '\u0000' + uri.slice(root.uri.length) + '\u0000' + stat.identity);
+      const id = this.store.nodeID(root.id, this.io.hash(root.id + '\u0000' + uri.slice(root.uri.length) + '\u0000' + stat.identity));
       entries.push({ id: id, uri: uri, identity: stat.identity, directory: stat.directory, parents: parents });
     }
     await this.validate(root); await this.validate(node);
@@ -140,7 +177,7 @@ export class MarkdownTree {
   private async install(uri: string, manual: boolean, ticket: number): Promise<void> {
     const stat = await this.io.stat(uri);
     if (stat.symlink || !stat.directory) throw new Error('permission');
-    const id = this.io.hash(uri + '\u0000' + stat.identity);
+    const id = this.store.rootID(uri, stat.identity);
     const root: TreeEntry = { id: id, uri: uri, identity: stat.identity, directory: true, parents: [] };
     const entries = await this.children(root, root);
     if (ticket !== this.epoch) throw new Error('protocol');

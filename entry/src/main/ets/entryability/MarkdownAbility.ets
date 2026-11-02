@@ -1,3 +1,4 @@
+import { newMarkdownId } from '../markdown/MarkdownIds';
 import { AbilityConstant, UIAbility, Want, Configuration, ConfigurationConstant } from '@kit.AbilityKit';
 import { window } from '@kit.ArkUI';
 import { webview } from '@kit.ArkWeb';
@@ -6,7 +7,6 @@ import { MarkdownHost, MarkdownOccupiedError } from '../markdown/MarkdownHost';
 import { MarkdownWindows } from '../markdown/MarkdownWindows';
 import { canonicalMarkdownURI } from '../markdown/MarkdownFiles';
 import { markdownInstanceKey } from './MarkdownStage';
-import { util } from '@kit.ArkTS';
 
 interface MarkdownPageStorage { markdownSession: string; markdownFailure: string; }
 
@@ -75,7 +75,7 @@ export default class MarkdownAbility extends UIAbility {
     }
     // 容器内已切换到别的文件时，新的系统请求另开实例，保护当前正文。
     void this.context.startAbility({ bundleName: this.context.abilityInfo.bundleName, abilityName: 'MarkdownAbility',
-      uri: uri, flags: want.flags, parameters: { markdownInstanceKey: util.generateRandomUUID(),
+      uri: uri, flags: want.flags, parameters: { markdownInstanceKey: newMarkdownId(),
         markdownRecovery: want.parameters?.markdownRecovery } }).catch(() => this.host?.reportOpenFailure());
   }
 

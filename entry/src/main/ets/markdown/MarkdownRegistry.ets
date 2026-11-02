@@ -27,6 +27,8 @@ export class MarkdownRegistry {
   private owners: Map<string, string> = new Map();
 
   reserve(grant: MarkdownGrant): string {
+    const existing = this.grants.get(grant.target.handle);
+    if (existing && existing !== grant) return existing.owner;
     const keys: string[] = ['uri:' + grant.uri];
     if (grant.fileIdentity) keys.push('file:' + grant.fileIdentity);
     for (const key of keys) {
@@ -44,6 +46,7 @@ export class MarkdownRegistry {
   }
 
   release(grant: MarkdownGrant): boolean {
+    if (this.grants.get(grant.target.handle) !== grant) return false;
     if (grant.pending) return false;
     this.grants.delete(grant.target.handle);
     this.owners.forEach((handle: string, key: string) => {

@@ -52,7 +52,8 @@ export interface MarkdownIO {
   decode(bytes: Uint8Array): MarkdownDecoded;
   encode(content: string, format: MarkdownFormat, maximum?: number): Uint8Array;
   digest(bytes: Uint8Array): string;
-  uuid(): string;
+  newId(): string;
+  token(): string;
 }
 export interface MarkdownStore {
   read(sessionId: string): MarkdownRecord;

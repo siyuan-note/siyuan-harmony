@@ -103,7 +103,7 @@ export class MarkdownHost {
   constructor(context: common.UIAbilityContext) {
     this.context = context;
     this.dark = context.config.colorMode === ConfigurationConstant.ColorMode.COLOR_MODE_DARK;
-    this.containerId = this.io.uuid();
+    this.containerId = this.io.newId();
     const resourceIO: MarkdownResourceIO = {
       stat: async (uri: string): Promise<MarkdownResourceStat> => {
         const stat: fs.Stat = await fs.lstat(new fileUri.FileUri(uri).path);
@@ -114,6 +114,7 @@ export class MarkdownHost {
     };
     this.resourceAccess = new MarkdownResourceAccess(resourceIO);
     if (!MarkdownHost.store) MarkdownHost.store = new HarmonyMarkdownStore(context);
+    if (MarkdownHost.store.list().some((record: MarkdownRecord) => record.sessionId === this.containerId)) throw new Error('identifier collision');
     this.transactions = new MarkdownTransactions(this.containerId, this.io, MarkdownHost.store, markdownRegistry);
     this.registerLifetime();
   }
@@ -266,7 +267,7 @@ export class MarkdownHost {
         bootstrap.format = recovery.format ?? recovery.target?.format ?? this.initialFormat;
         bootstrap.recovered = { revision: recovery.revision, targetGeneration: this.transactions.getGeneration() };
       } else if (bootstrap.target) {
-        const request: MarkdownOperation = { sessionId: this.sessionId, operationId: this.io.uuid(),
+        const request: MarkdownOperation = { sessionId: this.sessionId, operationId: this.io.newId(),
           targetGeneration: this.transactions.getGeneration(), revision: 0, content: '', target: this.transactions.getTarget() };
         const result = await this.transactions.read(request);
         if (result.kind !== 'read') throw new Error(this.text('markdownFileUnavailable'));
@@ -438,7 +439,9 @@ export class MarkdownHost {
     try {
       const uri = await this.tree.file(location);
       if (uri === this.transactions.getURI()) return { kind: 'current' };
-      transactions = new MarkdownTransactions(this.io.uuid(), this.io, MarkdownHost.store, markdownRegistry);
+      const sessionId = this.io.newId();
+      if (MarkdownHost.store.list().some((record: MarkdownRecord) => record.sessionId === sessionId)) throw new Error('identifier collision');
+      transactions = new MarkdownTransactions(sessionId, this.io, MarkdownHost.store, markdownRegistry);
       const persistent = await persistMarkdownPermission(uri, true);
       const result = await transactions.authorize(uri, new fileUri.FileUri(uri).name, persistent, false);
       if (result.kind === 'occupied' && result.sessionId) {
@@ -451,7 +454,8 @@ export class MarkdownHost {
       }
       if (result.kind !== 'read') { await transactions.release(); return { kind: result.kind, error: result.error }; }
       if (epoch !== this.documentEpoch || requestEpoch !== this.treeRequestEpoch || this.destroyed || await this.tree.file(location) !== uri) throw new Error('protocol');
-      const ticket = this.io.uuid();
+      const ticket = this.io.newId();
+      if (ticket === this.treeCommitted) throw new Error('identifier collision');
       this.treeCandidate = { ticket: ticket, transactions: transactions, content: result.content, format: result.target.format, epoch: epoch };
       return { kind: 'ready', ticket: ticket, sessionId: transactions.sessionId };
     } catch (error) {
@@ -467,11 +471,11 @@ export class MarkdownHost {
 
   private async openAbility(uri: string, recoveryId: string): Promise<void> {
     if (recoveryId && !validMarkdownId(recoveryId)) throw new Error('protocol');
-    const token = recoveryId ? this.io.uuid() : '';
+    const token = recoveryId ? this.io.token() : '';
     if (token) MarkdownHost.recoveryTransfers.grant(token, recoveryId, Date.now());
     try {
       await this.context.startAbility({ bundleName: this.context.abilityInfo.bundleName, abilityName: 'MarkdownAbility',
-        uri: uri, parameters: { markdownRecovery: token, markdownInstanceKey: uri || this.io.uuid() } });
+        uri: uri, parameters: { markdownRecovery: token, markdownInstanceKey: uri || this.io.newId() } });
     } catch (error) { if (token) MarkdownHost.recoveryTransfers.cancel(token); throw error as Error; }
   }
 
@@ -527,7 +531,7 @@ export class MarkdownHost {
     const fileIdentity = this.imageFiles.get(uri) ?? '';
     const grant = await this.resourceAccess.capture(uri, fileIdentity ? '' : this.directory, generation, fileIdentity);
     if (epoch !== this.documentEpoch || generation !== this.transactions.getGeneration()) return undefined;
-    const token = this.io.uuid();
+    const token = this.io.token();
     if (this.resources.size >= 512) this.resources.delete(this.resources.keys().next().value);
     this.resources.set(token, grant);
     return MARKDOWN_ORIGIN + '/resource/' + this.sessionId + '/' + token;
@@ -546,7 +550,9 @@ export class MarkdownHost {
     if (!destination) return { kind: 'cancelled' };
     const parent: string = new fileUri.FileUri(this.transactions.getURI()).getFullDirectoryUri().replace(new RegExp("\\/$"), '');
     if (epoch !== this.documentEpoch || !destination.startsWith(parent + '/') || generation !== this.transactions.getGeneration()) return { kind: 'blocked' };
-    const assetSession = new MarkdownTransactions(this.io.uuid(), this.io, MarkdownHost.store, markdownRegistry);
+    const sessionId = this.io.newId();
+    if (MarkdownHost.store.list().some((record: MarkdownRecord) => record.sessionId === sessionId)) throw new Error('identifier collision');
+    const assetSession = new MarkdownTransactions(sessionId, this.io, MarkdownHost.store, markdownRegistry);
     const reserved = await assetSession.authorize(destination, new fileUri.FileUri(destination).name, false, false,
       { bom: false, newline: '\n' }, true);
     if (reserved.kind !== 'read') return { kind: 'blocked' };
@@ -572,9 +578,13 @@ export class MarkdownHost {
       const bytes = await this.resourceAccess.read(grant, this.transactions.getGeneration());
       return epoch === this.documentEpoch && grant.generation === this.transactions.getGeneration() ? bytes : undefined;
     }
-    const relative = decodeURIComponent(url.slice(MARKDOWN_ORIGIN.length + 1));
+    let relative = decodeURIComponent(url.slice(MARKDOWN_ORIGIN.length + 1));
     if (!relative.startsWith('stage/build/markdown/') || relative.split('/').some((part: string) => part === '..' || part === '.') ||
       new RegExp("[\\u0000-\\u001f\\\\]").test(relative)) return undefined;
+    // Only the exact bundled script URL may read outside the editor asset root.
+    if (url === MARKDOWN_ORIGIN + '/stage/build/markdown/vditor/dist/js/lute/lute.min.js') {
+      relative = 'stage/protyle/js/lute/lute.min.js';
+    }
     const file: fs.File = await fs.open(this.runtime + '/' + relative, fs.OpenMode.READ_ONLY | fs.OpenMode.NOFOLLOW);
     try {
       const size: number = (await fs.stat(file.fd)).size;
@@ -599,7 +609,8 @@ export class MarkdownHost {
 
   command(type: string): Promise<boolean> {
     if (this.destroyed || !this.controller || !this.ready) return Promise.resolve(false);
-    const id = this.io.uuid();
+    const id = this.io.newId();
+    if (this.pending.has(id)) return Promise.resolve(false);
     const command: NativeCommand = { id: id, type: type };
     if (type === 'theme') command.dark = this.dark;
     if (type === 'cancel-quit' || type === 'external-change' || type === 'theme' || type === 'tree-change') {

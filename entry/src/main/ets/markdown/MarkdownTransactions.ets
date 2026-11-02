@@ -55,13 +55,13 @@ export class MarkdownTransactions {
   async authorize(uri: string, name: string, persistent: boolean, candidate: boolean,
     format: MarkdownFormat = { bom: false, newline: '\n' }, create: boolean = false): Promise<MarkdownReceipt> {
     if (this.closed || !uri.startsWith('file://') || !validMarkdownFormat(format)) return markdownBlocked();
-    const target: MarkdownTarget = { handle: this.io.uuid(), identity: this.io.uuid(), displayName: name, baseline: '',
+    const target: MarkdownTarget = { handle: this.io.newId(), identity: this.io.newId(), displayName: name, baseline: '',
       writable: true, format: format, capabilities: { persistentPermission: persistent, conditionalWrite: false,
         atomicReplace: false, coordinatedAccess: false } };
     const grant = new MarkdownGrant(target);
     grant.owner = this.sessionId;
     grant.uri = uri;
-    grant.reservationId = candidate ? this.io.uuid() : '';
+    grant.reservationId = candidate ? this.io.newId() : '';
     grant.generation = candidate ? this.generation + 1 : this.generation;
     grant.created = create;
     const occupied = this.registry.reserve(grant);

@@ -3,7 +3,7 @@ const {test} = require("node:test");
 const {readFileSync} = require("node:fs");
 const {resolve} = require("node:path");
 const {runInNewContext} = require("node:vm");
-const {createHash} = require("node:crypto");
+const {createHash, randomBytes} = require("node:crypto");
 const ts = require(require.resolve("typescript", {paths: [process.env.SIYUAN_APP_DIR || resolve(__dirname, "../../siyuan/app")]}));
 const directory = resolve(__dirname, "../entry/src/main/ets/markdown");
 
@@ -16,7 +16,8 @@ function load(name, mocks = {}, cache = new Map()) {
     const module = {exports: {}};
     runInNewContext(result.outputText, {module, exports: module.exports, console, Date, Uint8Array, ArrayBuffer,
         setTimeout, clearTimeout, canIUse: () => true,
-        require: id => mocks[id] || (id.startsWith("./") ? load(id.slice(2), mocks, cache) : {})});
+        require: id => mocks[id] || (id === "@kit.CryptoArchitectureKit" ? {cryptoFramework: {createRandom: () => ({generateRandomSync: length => ({data: new Uint8Array(randomBytes(length))})})}} :
+            id.startsWith("./") ? load(id.slice(2), mocks, cache) : {})});
     cache.set(name, module.exports);
     return module.exports;
 }
@@ -34,7 +35,8 @@ function harness() {
     const controls = {chunk: 3, failAfter: Infinity, closeFailure: false, storeFailure: false, afterStoreFailure: false, reloadFailure: false, readOnly: false};
     const digest = bytes => createHash("sha256").update(bytes).digest("hex");
     const io = {
-        uuid: () => "id-" + ++nextId,
+        newId: () => "id-" + ++nextId,
+        token: () => "token-" + ++nextId,
         digest,
         encode(value, format, maximum = 8 * 1024 * 1024) {
             const bytes = new TextEncoder().encode((format.bom ? "\ufeff" : "") + value.replace(/\r\n|\r|\n/g, format.newline));
@@ -86,6 +88,61 @@ function harness() {
     const content = uri => new TextDecoder().decode(files.get(uri).bytes);
     return {session, put, files, content, events, controls, records, store, io};
 }
+
+test("standalone Lute alias reads the canonical package file without exposing sibling assets", async () => {
+    const opened = [];
+    const bytes = new Uint8Array([1, 2, 3]);
+    const fileIo = {OpenMode: {READ_ONLY: 1, NOFOLLOW: 2},
+        async open(path, flags) {opened.push(path); assert.equal(flags, 3); return {fd: 1};},
+        async stat() {return {size: bytes.length};},
+        async read(_fd, buffer) {new Uint8Array(buffer).set(bytes); return bytes.length;}, async close() {}};
+    const {MarkdownHost} = load("MarkdownHost", {"@kit.CoreFileKit": {fileIo}});
+    const host = Object.create(MarkdownHost.prototype);
+    Object.assign(host, {runtime: "/private/runtime", documentEpoch: 0, transactions: {sessionId: "session"}});
+    const origin = "https://siyuan-markdown.local";
+    assert.deepEqual(Array.from(await host.data(origin + "/stage/build/markdown/vditor/dist/js/lute/lute.min.js")), [1, 2, 3]);
+    assert.deepEqual(opened, ["/private/runtime/stage/protyle/js/lute/lute.min.js"]);
+    for (const url of [origin + "/stage/protyle/js/lute/lute.min.js", origin + "/stage/protyle/js/other.js",
+        origin + "/stage/build/markdown/../../protyle/js/lute/lute.min.js",
+        origin + "/stage/build/markdown/%2e%2e/%2e%2e/protyle/js/lute/lute.min.js",
+        "https://foreign.invalid/stage/build/markdown/vditor/dist/js/lute/lute.min.js"]) {
+        assert.equal(await host.data(url), undefined);
+    }
+    assert.equal(opened.length, 1);
+});
+
+test("standalone runtime upgrades require the canonical parser and remove a legacy duplicate", () => {
+    const source = readFileSync(resolve(directory, "MarkdownFiles.ets"), "utf8");
+    assert.match(source, /fs\.accessSync\(root \+ '\/\.ready'\) && fs\.accessSync\(parser\) && !fs\.accessSync\(legacyParser\)/);
+    assert.match(source, /if \(fs\.accessSync\(legacyParser\)\) await fs\.unlink\(legacyParser\)/);
+    assert.match(source, /if \(fs\.accessSync\(root \+ '\/\.ready'\)\) await fs\.unlink\(root \+ '\/\.ready'\)/);
+    assert.ok(source.indexOf("await fs.unlink(root + '/.ready')") < source.indexOf("await zlib.decompressFile(archive, root)"));
+    assert.ok(source.indexOf("await fs.unlink(legacyParser)") < source.indexOf("writeMarkdownAtomic(root + '/.ready'"));
+});
+
+test("a partial parser refresh invalidates ready and the next process retries extraction", async () => {
+    const root = "/cache/markdown-runtime-1";
+    const files = new Set([root + "/.ready"]);
+    let extractions = 0;
+    const fileIo = {OpenMode: {CREATE: 1, TRUNC: 2, READ_WRITE: 4},
+        accessSync: path => files.has(path), mkdirSync() {}, async unlink(path) {files.delete(path);},
+        async open() {return {fd: 1};}, async write(_fd, bytes) {return bytes.byteLength;},
+        async fsync() {}, async close() {}};
+    const mocks = {"@kit.CoreFileKit": {fileIo}, "@kit.BasicServicesKit": {zlib: {
+        async decompressFile() {
+            extractions++;
+            files.add(root + "/stage/protyle/js/lute/lute.min.js");
+            throw new Error("interrupted extraction");
+        },
+    }}};
+    const context = {cacheDir: "/cache", resourceManager: {getRawFileContentSync: () => new Uint8Array([1])}};
+    for (let process = 0; process < 2; process++) {
+        const {MarkdownAssets} = load("MarkdownFiles", mocks);
+        await assert.rejects(MarkdownAssets.initialize(context, "1"), /interrupted extraction/);
+        assert.equal(files.has(root + "/.ready"), false);
+    }
+    assert.equal(extractions, 2, "a parser written before failure cannot validate the old cache");
+});
 
 const source = "file://docs/source.md";
 const candidate = "file://docs/copy.md";
@@ -288,7 +345,7 @@ test("Harmony open failures preserve the active page and subsequent close channe
     Object.assign(host, {languages: {}, ready: true, protectedFailure: false, destroyed: false,
         pageGeneration: 1, documentEpoch: 2, controller: {}, pending: new Map(),
         context: {terminateSelf: async () => events.push("terminate")},
-        cancelTreeCandidate: async () => {}, io: {uuid: () => "close-command"},
+        cancelTreeCandidate: async () => {}, io: {newId: () => "close-command"},
         ui: {notice: message => events.push(message), failure: () => assert.fail("must not replace the page")},
         sendScript: async () => {
             events.push("close-channel");
@@ -384,10 +441,10 @@ test("Harmony specified routing focuses an occupied alias and retires only its n
     const {default: Ability} = load("../entryability/MarkdownAbility", {
         "@kit.AbilityKit": {UIAbility: class {}}, "BuildProfile": {default: {DEBUG: true}},
         "@kit.ArkWeb": {webview: {WebviewController: {setWebDebuggingAccess() {}}}},
-        "@kit.ArkTS": {util: {generateRandomUUID: () => "fresh-key"}},
         "../markdown/MarkdownWindows": {MarkdownWindows},
         "../markdown/MarkdownHost": {MarkdownHost: Host, MarkdownOccupiedError: Occupied},
         "../markdown/MarkdownFiles": {canonicalMarkdownURI: value => value},
+        "../markdown/MarkdownIds": {newMarkdownId: () => "fresh-key"},
         "./MarkdownStage": {markdownInstanceKey: want => want.uri}
     });
     const ability = new Ability();
@@ -978,4 +1035,58 @@ test("Harmony completed-operation replay requires the original expected baseline
     assert.equal((await session.write({...request, expectedBaseline: "different"})).kind, "blocked");
     assert.equal((await session.write({...request, target: {...request.target, displayName: "other.md"}})).kind, "blocked");
     assert.equal((await session.write(request)).kind, "committed");
+});
+
+test("Markdown ordinary IDs use the SiYuan alphabet while capability tokens use 32 secure bytes", () => {
+    const sizes = [];
+    const {newMarkdownId, newMarkdownToken} = load("MarkdownIds", {"@kit.CryptoArchitectureKit": {cryptoFramework: {
+        createRandom: () => ({generateRandomSync(size) {sizes.push(size); return {data: new Uint8Array(size).fill(10)};}}),
+    }}});
+    assert.match(newMarkdownId(), /^[0-9]{14}-kkkkkkk$/);
+    assert.equal(newMarkdownToken(), "0a".repeat(32));
+    assert.deepEqual(sizes, [7, 32]);
+});
+
+test("a colliding grant ID cannot replace or release a different owner's grant", () => {
+    const {MarkdownRegistry, MarkdownGrant} = load("MarkdownRegistry");
+    const registry = new MarkdownRegistry();
+    const original = new MarkdownGrant({handle: "same"});
+    original.uri = "file://original"; original.owner = "first";
+    const collision = new MarkdownGrant({handle: "same"});
+    collision.uri = "file://other"; collision.owner = "second";
+    assert.equal(registry.reserve(original), "");
+    assert.equal(registry.reserve(collision), "first");
+    assert.equal(registry.release(collision), false);
+    assert.equal(registry.get("same", "first"), original);
+    assert.equal(registry.get("same", "second"), undefined);
+});
+
+
+test("tree SiYuan IDs survive refresh and saved expansion", async () => {
+    const pattern = /^[0-9]{14}-[a-z0-9]{7}$/;
+    const h = treeHarness(); h.put(treeRoot, true); h.put(treeRoot + "/sub", true);
+    await h.tree.choose(treeRoot); const state = await h.tree.state();
+    const child = (await h.tree.list(treeLocation(state))).entries[0];
+    assert.match(state.rootId, pattern); assert.match(child.id, pattern);
+    assert.equal((await h.tree.list(treeLocation(state))).entries[0].id, child.id);
+    await h.tree.saveView({...treeLocation(state), expanded: [child.id]});
+    const restored = treeHarness(h.saved()); restored.put(treeRoot, true); restored.put(treeRoot + "/sub", true);
+    await restored.tree.choose(treeRoot); const next = await restored.tree.state();
+    assert.equal(next.rootId, state.rootId);
+    assert.equal((await restored.tree.list(treeLocation(next))).entries[0].id, child.id);
+
+});
+
+test("tree IDs reserve unloaded saved IDs and reject ambiguous mappings", () => {
+    const root = "20261102100000-aaaaaaa", saved = "20261102100000-bbbbbbb", fresh = "20261102100000-ccccccc";
+    let calls=0;
+    const {MarkdownTreeStore} = load("MarkdownTree", {"./MarkdownIds":{newMarkdownId:()=>++calls === 1 ? saved : fresh}});
+    const record={version:1,width:240,visible:true,roots:[{id:root,uri:treeRoot,identity:treeRoot,expanded:[saved],nodeIds:[{key:"a".repeat(64),id:saved}]}]};
+    const store=new MarkdownTreeStore(JSON.stringify(record),async()=>{});
+    assert.equal(store.nodeID(root,"b".repeat(64)),fresh); assert.equal(calls,2);
+    assert.equal(store.nodeID(root,"a".repeat(64)),saved);
+    record.roots[0].nodeIds.push({key:"b".repeat(64),id:saved});
+    assert.throws(()=>new MarkdownTreeStore(JSON.stringify(record),async()=>{}).get(),/protocol/);
+    record.roots[0].nodeIds=[{key:"a".repeat(64),id:root}];
+    assert.throws(()=>new MarkdownTreeStore(JSON.stringify(record),async()=>{}).get(),/protocol/);
 });

@@ -1,6 +1,6 @@
+import { newMarkdownToken } from '../markdown/MarkdownIds';
 import { webview } from '@kit.ArkWeb';
 import { promptAction } from '@kit.ArkUI';
-import { util } from '@kit.ArkTS';
 import { MarkdownHost, MarkdownNativeUI } from '../markdown/MarkdownHost';
 import { MarkdownWindows } from '../markdown/MarkdownWindows';
 import { MARKDOWN_PAGE, MARKDOWN_ORIGIN, MARKDOWN_RECOVERY_CONTENT_LIMIT } from '../markdown/MarkdownTypes';
@@ -146,7 +146,7 @@ struct Markdown {
             this.resetChannel();
             const generation = this.channelGeneration;
             try {
-              this.channelToken = util.generateRandomUUID(true);
+              this.channelToken = newMarkdownToken();
               const ports: webview.WebMessagePort[] = this.controller.createWebMessagePorts();
               this.port = ports[0];
               this.port.onMessageEvent((message: webview.WebMessage) => {

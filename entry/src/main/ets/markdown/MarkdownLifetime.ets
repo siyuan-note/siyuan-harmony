@@ -22,6 +22,7 @@ export class MarkdownLifetime {
   static workspaceToken(): number { return MarkdownLifetime.workspaceGeneration; }
   static isCurrentWorkspace(token: number): boolean { return token === MarkdownLifetime.workspaceGeneration; }
   static add(id: string, participant: MarkdownParticipant): void {
+    if (MarkdownLifetime.participants.has(id)) throw new Error('identifier collision');
     if (MarkdownLifetime.quitting) throw new Error('Markdown is closing');
     MarkdownLifetime.participants.set(id, participant);
   }
