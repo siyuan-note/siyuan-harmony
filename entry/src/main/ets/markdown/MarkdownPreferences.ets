@@ -1,5 +1,13 @@
 import { MarkdownPreferences } from './MarkdownTypes';
 
+export function markdownThemeDark(preference: string, systemDark: boolean): boolean {
+  return preference === 'dark' || preference === 'system' && systemDark;
+}
+
+export function markdownInitialPage(html: string, dark: boolean): string {
+  return dark ? html.replace('./appearance/themes/daylight/theme.css', './appearance/themes/midnight/theme.css') : html;
+}
+
 interface MarkdownPreferenceFile { version: number; value: MarkdownPreferences; }
 
 export class MarkdownPreferenceStore {

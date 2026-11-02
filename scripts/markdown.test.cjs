@@ -1090,3 +1090,54 @@ test("tree IDs reserve unloaded saved IDs and reject ambiguous mappings", () => 
     record.roots[0].nodeIds=[{key:"a".repeat(64),id:root}];
     assert.throws(()=>new MarkdownTreeStore(JSON.stringify(record),async()=>{}).get(),/protocol/);
 });
+
+test("native and initial HTML themes respect explicit preference before system appearance", () => {
+    const {markdownThemeDark, markdownInitialPage} = load("MarkdownPreferences");
+    for (const system of [false, true]) {
+        assert.equal(markdownThemeDark("dark", system), true);
+        assert.equal(markdownThemeDark("light", system), false);
+        assert.equal(markdownThemeDark("system", system), system);
+    }
+    const html = '<link href="./appearance/themes/daylight/theme.css"><script src="./index.js"></script>';
+    assert.equal(markdownInitialPage(html, true), html.replace("daylight/theme.css", "midnight/theme.css"));
+    assert.equal(markdownInitialPage(html, false), html);
+    assert.equal(markdownInitialPage('<link href=./appearance/themes/daylight/theme.css>', true), '<link href=./appearance/themes/midnight/theme.css>');
+    assert.equal(markdownInitialPage("daylight document text", true), "daylight document text");
+    const {MarkdownHost} = load("MarkdownHost");
+    const host = Object.create(MarkdownHost.prototype);
+    const changes = [];
+    Object.assign(host, {preference: {theme: "dark"}, dark: false, command: async () => true});
+    const controller = {};
+    host.attach(controller, {theme: dark => changes.push(dark)});
+    host.setDark(true);
+    host.preference.theme = "light";
+    host.setDark(true);
+    host.preference.theme = "system";
+    host.setDark(false);
+    assert.deepEqual(changes, [true, true, false, false]);
+    host.detachUI({});
+    host.setDark(true);
+    assert.equal(changes.length, 5, "an old controller cannot detach the current page");
+    host.detachUI(controller);
+    host.setDark(false);
+    assert.equal(changes.length, 5, "a disappeared page is not updated");
+    host.attach(controller, {theme: dark => changes.push(dark)});
+    assert.equal(changes.length, 6, "reappearing pages immediately receive current appearance");
+});
+
+test("the host transforms only initial page bytes and leaves other bundled resources intact", async () => {
+    const html = '<link href="./appearance/themes/daylight/theme.css">';
+    const bytes = new TextEncoder().encode(html);
+    const fileIo = {OpenMode: {READ_ONLY: 1, NOFOLLOW: 2}, async open() {return {fd: 1};},
+        async stat() {return {size: bytes.length};}, async read(_fd, buffer) {new Uint8Array(buffer).set(bytes); return bytes.length;}, async close() {}};
+    const util = {TextDecoder: {create: () => ({decodeToString: data => new TextDecoder().decode(data)})},
+        TextEncoder: class {encodeInto(text) {return new TextEncoder().encode(text);}}};
+    const {MarkdownHost} = load("MarkdownHost", {"@kit.CoreFileKit": {fileIo}, "@kit.ArkTS": {util}});
+    const host = Object.create(MarkdownHost.prototype);
+    Object.assign(host, {runtime: "/private/runtime", documentEpoch: 0, transactions: {sessionId: "session"}, preference: {theme: "dark"}, dark: false});
+    const origin = "https://siyuan-markdown.local/stage/build/markdown/";
+    assert.equal(new TextDecoder().decode(await host.data(origin + "index.html")), html.replace("daylight", "midnight"));
+    assert.equal(new TextDecoder().decode(await host.data(origin + "other.js")), html);
+    host.preference.theme = "light"; host.dark = true;
+    assert.equal(new TextDecoder().decode(await host.data(origin + "index.html")), html);
+});

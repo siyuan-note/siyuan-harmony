@@ -11,7 +11,7 @@ import { HarmonyMarkdownIO, HarmonyMarkdownStore, MarkdownAssets, canonicalMarkd
   persistMarkdownPermission, activateMarkdownPermission, writeMarkdownAtomic, markdownFileIdentity } from './MarkdownFiles';
 import { MarkdownTree, MarkdownTreeStore, MarkdownTreeIO, MarkdownTreeStat, MarkdownTreeLocation, MarkdownTreeView } from './MarkdownTree';
 import { MarkdownResourceAccess, MarkdownResourceGrant, MarkdownResourceIO, MarkdownResourceStat, MarkdownImageIO, copyMarkdownImage } from './MarkdownResources';
-import { MarkdownPreferenceStore } from './MarkdownPreferences';
+import { MarkdownPreferenceStore, markdownThemeDark, markdownInitialPage } from './MarkdownPreferences';
 import { MarkdownRecoveryTransfers, latestMarkdownRecovery } from './MarkdownRecovery';
 import { MarkdownWindows } from './MarkdownWindows';
 import { MarkdownOperation, MarkdownFormat, MarkdownCommit, MarkdownPrepared, MarkdownWatermark,
@@ -35,6 +35,7 @@ interface TreeCandidate { ticket: string; transactions: MarkdownTransactions; co
 interface TreeOpenResult { kind: string; ticket?: string; sessionId?: string; error?: MarkdownFailure; }
 
 export interface MarkdownNativeUI {
+  theme?: (dark: boolean) => void;
   confirm: (title: string, message: string, choices: string[]) => Promise<number>;
   filename: (title: string, initial: string, accept: string, cancel: string) => Promise<string>;
   failure: (message: string) => void;
@@ -207,7 +208,10 @@ export class MarkdownHost {
   attach(controller: webview.WebviewController, ui: MarkdownNativeUI): void {
     this.controller = controller;
     this.ui = ui;
+    this.ui.theme?.(this.effectiveDark());
   }
+  effectiveDark(): boolean { return markdownThemeDark(this.preference.theme, this.dark); }
+  detachUI(controller: webview.WebviewController): void { if (this.controller === controller) this.ui = undefined; }
   pageReady(url: string): void {
     this.pageGeneration++;
     this.ready = url === MARKDOWN_PAGE;
@@ -368,6 +372,7 @@ export class MarkdownHost {
     }
     if (action === 'preferences') {
       this.preference = await MarkdownHost.preferences.update(request.payload as MarkdownPreferences);
+      this.ui?.theme?.(this.effectiveDark());
       return this.preference;
     }
     if (action === 'confirm') {
@@ -598,6 +603,10 @@ export class MarkdownHost {
         data.set(new Uint8Array(chunk, 0, count), offset);
         offset += count;
       }
+      if (url === MARKDOWN_PAGE) {
+        const html = util.TextDecoder.create('utf-8', { fatal: true }).decodeToString(data);
+        return new util.TextEncoder().encodeInto(markdownInitialPage(html, this.effectiveDark()));
+      }
       return data;
     } finally { await fs.close(file); }
   }
@@ -646,6 +655,7 @@ export class MarkdownHost {
   }
   setDark(dark: boolean): void {
     this.dark = dark;
+    this.ui?.theme?.(this.effectiveDark());
     void this.command('theme');
   }
   async recoverProtected(): Promise<void> {

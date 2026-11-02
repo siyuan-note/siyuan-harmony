@@ -42,6 +42,7 @@ struct Markdown {
   @LocalStorageProp('markdownFailure') failure: string = '';
   @State private filename: string = '';
   @State private protectedFailure: string = '';
+  @State private surfaceDark: boolean = false;
   private filenameController?: CustomDialogController;
   private host?: MarkdownHost;
   private controller: webview.WebviewController = new webview.WebviewController();
@@ -49,18 +50,23 @@ struct Markdown {
   private channelGeneration: number = 0;
   private channelToken: string = '';
 
-  aboutToAppear(): void { this.host = MarkdownWindows.get(this.sessionId); }
+  aboutToAppear(): void {
+    this.host = MarkdownWindows.get(this.sessionId);
+    this.surfaceDark = this.host?.effectiveDark() ?? false;
+    this.host?.attach(this.controller, this.ui());
+  }
   private resetChannel(): void {
     this.channelGeneration++;
     this.channelToken = '';
     try { this.port?.close(); } catch (error) { /* 已销毁的端口不再具有调用权限。 */ }
     this.port = undefined;
   }
-  aboutToDisappear(): void { this.resetChannel(); this.host?.pageReady(''); }
+  aboutToDisappear(): void { this.resetChannel(); this.host?.pageReady(''); this.host?.detachUI(this.controller); }
   onBackPress(): boolean { if (this.host) { void this.host.close(); return true; } return false; }
 
   private ui(): MarkdownNativeUI {
     return {
+      theme: (dark: boolean) => { this.surfaceDark = dark; },
       notice: (message: string) => {
         // 新打开失败仅提示，不销毁当前文档及其桥接。
         try { this.getUIContext().getPromptAction().showToast({ message: message }); } catch (error) { }
@@ -111,6 +117,7 @@ struct Markdown {
     Column() {
       if (this.failure || this.protectedFailure || !this.host) {
         Text(this.failure || this.protectedFailure || 'Markdown').padding(24)
+          .fontColor(this.host ? (this.surfaceDark ? '#ffffff' : '#222222') : $r('sys.color.ohos_id_color_text_primary'))
         if (this.protectedFailure && this.host) {
           Button(this.host.text('retry')).onClick(() => { void this.host.retryProtected(); }).margin(12)
           Button(this.host.text('markdownRecovery')).onClick(() => { void this.host.recoverProtected(); }).margin(12)
@@ -118,6 +125,7 @@ struct Markdown {
         }
       } else {
         Web({ src: '', controller: this.controller })
+          .backgroundColor(this.surfaceDark ? '#1e1e1e' : '#ffffff')
           .javaScriptAccess(true)
           .javaScriptOnDocumentStart([{ script: MARKDOWN_CHANNEL_SCRIPT, scriptRules: [MARKDOWN_ORIGIN] }])
           .domStorageAccess(false)
@@ -164,6 +172,6 @@ struct Markdown {
           .onDownloadStart(() => {})
           .width('100%').height('100%')
       }
-    }.width('100%').height('100%').backgroundColor($r('app.color.bgColor'))
+    }.width('100%').height('100%').backgroundColor(this.host ? (this.surfaceDark ? '#1e1e1e' : '#ffffff') : $r('app.color.bgColor'))
   }
 }
