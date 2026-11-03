@@ -7,6 +7,16 @@ const {createHash, randomBytes} = require("node:crypto");
 const ts = require(require.resolve("typescript", {paths: [process.env.SIYUAN_APP_DIR || resolve(__dirname, "../../siyuan/app")]}));
 const directory = resolve(__dirname, "../entry/src/main/ets/markdown");
 
+test("network images use browser loading while CSP and the native origin retain their boundaries", () => {
+    const page = readFileSync(resolve(directory, "../pages/Markdown.ets"), "utf8");
+    assert.match(page, /img-src [^;]*http: https:/);
+    assert.match(page, /connect-src 'none'; frame-src 'none'; object-src 'none'/);
+    assert.match(page, /!request\.isMainFrame\(\) && request\.getRequestMethod\(\) === 'GET'/);
+    assert.ok(page.includes("siyuan-markdown[.]local"));
+    assert.match(page, /\.mixedMode\(MixedMode\.All\)/);
+    assert.match(page, /\.onOverrideUrlLoading\(\(request\) => request\.getRequestUrl\(\) !== MARKDOWN_PAGE\)/);
+});
+
 function load(name, mocks = {}, cache = new Map()) {
     if (cache.has(name)) return cache.get(name);
     const source = readFileSync(resolve(directory, name + ".ets"), "utf8");

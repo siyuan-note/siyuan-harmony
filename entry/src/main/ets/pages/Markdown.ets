@@ -96,11 +96,15 @@ struct Markdown {
     };
   }
 
-  private intercept(url: string): WebResourceResponse {
+  private intercept(request: WebResourceRequest): WebResourceResponse | null {
+    const url = request.getRequestUrl();
+    // 页面 CSP 只允许图片联网，本地虚拟来源始终由宿主处理。
+    if (!request.isMainFrame() && request.getRequestMethod() === 'GET' &&
+      new RegExp('^https?://').test(url) && !new RegExp('^https?://(?:[^/]*@)?siyuan-markdown[.]local(?::[0-9]+)?(?:/|$)', 'i').test(url)) return null;
     const response = new WebResourceResponse();
     response.setResponseIsReady(false);
     response.setResponseHeader([{ headerKey: 'Content-Security-Policy', headerValue:
-      "default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data:; font-src 'self'; connect-src 'none'; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'" },
+      "default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data: http: https:; font-src 'self'; connect-src 'none'; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'" },
       { headerKey: 'X-Content-Type-Options', headerValue: 'nosniff' }]);
     void this.host.data(url).then((bytes: Uint8Array | undefined) => {
       response.setResponseCode(bytes ? 200 : 403);
@@ -132,7 +136,7 @@ struct Markdown {
           .fileAccess(false)
           .imageAccess(true)
           .onlineImageAccess(true)
-          .mixedMode(MixedMode.None)
+          .mixedMode(MixedMode.All)
           .cacheMode(CacheMode.None)
           .mediaPlayGestureAccess(true)
           .zoomAccess(false)
@@ -141,7 +145,7 @@ struct Markdown {
             this.host.attach(this.controller, this.ui());
             try { this.controller.loadUrl(MARKDOWN_PAGE); } catch (error) { this.host.protect(); }
           })
-          .onInterceptRequest((event) => this.intercept(event.request.getRequestUrl()))
+          .onInterceptRequest((event) => this.intercept(event.request))
           .onOverrideUrlLoading((request) => request.getRequestUrl() !== MARKDOWN_PAGE)
           .onPermissionRequest((event) => { event?.request.deny(); })
           .onPageBegin(() => {
