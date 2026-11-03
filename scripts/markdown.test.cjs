@@ -743,7 +743,31 @@ test("Harmony standalone ability has precise file routing, no workspace dependen
     assert.match(module, /general\.markdown/);
     assert.match(module, /FILE_ACCESS_PERSIST/);
     const backup = JSON.parse(readFileSync(resolve(directory, "../../resources/base/profile/backup_config.json"), "utf8"));
-    assert.ok(backup.excludes.some(value => value.includes("el2/base/files/markdown-private")));
+    assert.deepEqual(backup.excludes, [
+        "/data/storage/el1/base/files/workspaces/home/.config/siyuan/markdown/",
+        "/data/storage/el2/base/files/workspaces/home/.config/siyuan/markdown/",
+        "/data/storage/el2/base/haps/*/files/workspaces/home/.config/siyuan/markdown/",
+    ]);
+});
+
+test("Harmony creates recovery under the shared home before reading records", () => {
+    const created = [];
+    const listed = [];
+    const fileSystem = {
+        mkdirSync: (path, recursive) => created.push({path, recursive}),
+        listFileSync: path => {listed.push(path); return [];},
+    };
+    const {markdownDirectory, HarmonyMarkdownStore} = load("MarkdownFiles", {"@kit.CoreFileKit": {fileIo: fileSystem}});
+    const context = {filesDir: "/data/storage/el2/base/files"};
+    const root = context.filesDir + "/workspaces/home/.config/siyuan/markdown";
+    assert.equal(markdownDirectory(context), root);
+    new HarmonyMarkdownStore(context);
+    assert.deepEqual(created, [{path: root + "/recovery", recursive: true}]);
+    assert.deepEqual(listed, [root + "/recovery"]);
+    const host = readFileSync(resolve(directory, "MarkdownHost.ets"), "utf8");
+    assert.match(host, /markdownDirectory\(this\.context\) \+ '\/preferences\.conf'/);
+    assert.match(host, /markdownDirectory\(this\.context\) \+ '\/tree-view\.conf'/);
+    assert.doesNotMatch(host, /markdown-private/);
 });
 
 test("Harmony bridge channel exists only in the fixed top frame and queues until native port delivery", () => {

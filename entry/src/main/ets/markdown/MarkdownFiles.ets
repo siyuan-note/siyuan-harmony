@@ -149,12 +149,16 @@ export function writeMarkdownAtomic(path: string, text: string): Promise<void> {
   });
 }
 
+export function markdownDirectory(context: common.UIAbilityContext): string {
+  return context.filesDir + '/workspaces/home/.config/siyuan/markdown';
+}
+
 export class HarmonyMarkdownStore implements MarkdownStore {
   private directory: string;
   private records: Map<string, MarkdownRecord> = new Map();
   constructor(context: common.UIAbilityContext) {
-    this.directory = context.filesDir + '/markdown-private';
-    try { fs.mkdirSync(this.directory); } catch (error) {
+    this.directory = markdownDirectory(context) + '/recovery';
+    try { fs.mkdirSync(this.directory, true); } catch (error) {
       if ((error as BusinessError).code !== 13900015) throw new Error((error as BusinessError).message);
     }
     const names: string[] = fs.listFileSync(this.directory);

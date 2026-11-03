@@ -1,8 +1,8 @@
 {
   "allowToBackupRestore": true,
   "excludes": [
-    "/data/storage/el1/base/files/markdown-private/",
-    "/data/storage/el2/base/files/markdown-private/",
-    "/data/storage/el2/base/haps/*/files/markdown-private/"
+    "/data/storage/el1/base/files/workspaces/home/.config/siyuan/markdown/",
+    "/data/storage/el2/base/files/workspaces/home/.config/siyuan/markdown/",
+    "/data/storage/el2/base/haps/*/files/workspaces/home/.config/siyuan/markdown/"
   ]
 }

@@ -8,7 +8,7 @@ import { MarkdownTransactions } from './MarkdownTransactions';
 import { markdownRegistry } from './MarkdownRegistry';
 import { MarkdownLifetime, MarkdownParticipant } from './MarkdownLifetime';
 import { HarmonyMarkdownIO, HarmonyMarkdownStore, MarkdownAssets, canonicalMarkdownURI,
-  persistMarkdownPermission, activateMarkdownPermission, writeMarkdownAtomic, markdownFileIdentity } from './MarkdownFiles';
+  persistMarkdownPermission, activateMarkdownPermission, writeMarkdownAtomic, markdownFileIdentity, markdownDirectory } from './MarkdownFiles';
 import { MarkdownTree, MarkdownTreeStore, MarkdownTreeIO, MarkdownTreeStat, MarkdownTreeLocation, MarkdownTreeView } from './MarkdownTree';
 import { MarkdownResourceAccess, MarkdownResourceGrant, MarkdownResourceIO, MarkdownResourceStat, MarkdownImageIO, copyMarkdownImage } from './MarkdownResources';
 import { MarkdownPreferenceStore, markdownThemeDark, markdownInitialPage } from './MarkdownPreferences';
@@ -142,7 +142,7 @@ export class MarkdownHost {
         break;
       }
     }
-    const preferencePath = this.context.filesDir + '/markdown-private/preferences.conf';
+    const preferencePath = markdownDirectory(this.context) + '/preferences.conf';
     if (!MarkdownHost.preferences) {
       let contents: string | undefined;
       try { if (fs.accessSync(preferencePath)) contents = fs.readTextSync(preferencePath); }
@@ -150,7 +150,7 @@ export class MarkdownHost {
       MarkdownHost.preferences = new MarkdownPreferenceStore(contents, (text: string) => writeMarkdownAtomic(preferencePath, text));
     }
     this.preference = MarkdownHost.preferences.get();
-    const treePath = this.context.filesDir + '/markdown-private/tree-view.conf';
+    const treePath = markdownDirectory(this.context) + '/tree-view.conf';
     if (!MarkdownHost.treeStore) {
       let contents: string | undefined;
       try { if (fs.accessSync(treePath)) contents = fs.readTextSync(treePath); } catch (error) { contents = ''; }
