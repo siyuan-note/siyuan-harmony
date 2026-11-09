@@ -13,6 +13,7 @@ import { HarmonyMarkdownIO, HarmonyMarkdownStore, MarkdownAssets, canonicalMarkd
 import { MarkdownTree, MarkdownTreeStore, MarkdownTreeIO, MarkdownTreeStat, MarkdownTreeLocation, MarkdownTreeView } from './MarkdownTree';
 import { MarkdownResourceAccess, MarkdownResourceGrant, MarkdownResourceIO, MarkdownResourceStat, MarkdownImageIO, copyMarkdownImage } from './MarkdownResources';
 import { MarkdownPreferenceStore, markdownThemeDark, markdownInitialPage } from './MarkdownPreferences';
+import { MarkdownAppearance, MarkdownAppearanceValue } from './MarkdownAppearance';
 import { MarkdownRecoveryTransfers, latestMarkdownRecovery } from './MarkdownRecovery';
 import { MarkdownWindows } from './MarkdownWindows';
 import { MarkdownOperation, MarkdownFormat, MarkdownCommit, MarkdownPrepared, MarkdownWatermark,
@@ -27,10 +28,11 @@ interface ReleaseRequest { sessionId: string; reservationId: string; operationId
 interface RecoveryItem { id: string; displayName: string; updatedAt: number; }
 interface RecoveryVersion { revision: number; targetGeneration: number; }
 interface ImageResult { kind: string; reference?: string; }
-interface FontCapabilities { systemFonts: boolean; }
+interface FontCapabilities { systemFonts: boolean; workspaceAppearance: boolean; }
 interface Bootstrap {
   sessionId: string; content: string; target?: Object; format: MarkdownFormat; recovered?: RecoveryVersion;
-  capabilities: FontCapabilities; preferences: MarkdownPreferences; languages: Record<string, string>; lang: string; platform: string; dark: boolean;
+  capabilities: FontCapabilities; preferences: MarkdownPreferences; appearance?: MarkdownAppearanceValue;
+  languages: Record<string, string>; lang: string; platform: string; dark: boolean;
 }
 interface PendingCommand { resolve: (accepted: boolean) => void; timer: number; }
 interface TreeCandidate { ticket: string; transactions: MarkdownTransactions; content: string; format: MarkdownFormat; epoch: number; }
@@ -67,6 +69,8 @@ export class MarkdownHost {
   private initialFormat: MarkdownFormat = { bom: false, newline: '\n' };
   private recovered: boolean = false;
   private preference: MarkdownPreferences = { mode: 'ir', theme: 'system', fontSize: 16 };
+  private appearanceResolver?: MarkdownAppearance;
+  private appearance?: MarkdownAppearanceValue;
   private resources: Map<string, MarkdownResourceGrant> = new Map();
   private imageFiles: Map<string, string> = new Map();
   private resourceAccess: MarkdownResourceAccess;
@@ -152,6 +156,8 @@ export class MarkdownHost {
       MarkdownHost.preferences = new MarkdownPreferenceStore(contents, (text: string) => writeMarkdownAtomic(preferencePath, text));
     }
     this.preference = MarkdownHost.preferences.get();
+    this.appearanceResolver = new MarkdownAppearance(this.context.filesDir + '/workspaces', this.containerId);
+    if (this.appearanceResolver.available()) await this.resolveAppearance();
     const treePath = markdownDirectory(this.context) + '/tree-view.conf';
     if (!MarkdownHost.treeStore) {
       let contents: string | undefined;
@@ -212,7 +218,16 @@ export class MarkdownHost {
     this.ui = ui;
     this.ui.theme?.(this.effectiveDark());
   }
-  effectiveDark(): boolean { return markdownThemeDark(this.preference.theme, this.dark); }
+  effectiveDark(): boolean { return markdownThemeDark(this.appearance?.theme ?? this.preference.theme, this.dark); }
+  private async resolveAppearance(patch?: Object): Promise<MarkdownAppearanceValue> {
+    if (this.destroyed || !this.appearanceResolver?.available()) throw new Error('Workspace appearance unavailable');
+    const result = await MarkdownHost.preferences.resolveAppearance(preferences => this.appearanceResolver.resolve(preferences, patch));
+    if (this.destroyed) throw new Error('Workspace appearance closed');
+    this.preference = result.preferences;
+    this.appearance = result.appearance;
+    this.ui?.theme?.(this.effectiveDark());
+    return this.appearance;
+  }
   detachUI(controller: webview.WebviewController): void { if (this.controller === controller) this.ui = undefined; }
   pageReady(url: string): void {
     this.pageGeneration++;
@@ -262,12 +277,14 @@ export class MarkdownHost {
     const action = request.action;
     const epoch = this.documentEpoch;
     if (action === 'bootstrap') {
+      if (this.appearanceResolver?.available()) await this.resolveAppearance();
       if (!await this.transactions.recoverPending()) throw new Error(this.text('markdownUncertain'));
       const record = MarkdownHost.store.read(this.sessionId);
       const recovery = latestMarkdownRecovery(record);
       const bootstrap: Bootstrap = { sessionId: this.sessionId, content: this.initialContent,
         target: this.transactions.getTarget(), format: this.initialFormat, preferences: this.preference,
-        languages: this.languages, lang: this.lang, platform: 'harmony', dark: this.dark };
+        capabilities: { systemFonts: true, workspaceAppearance: this.appearanceResolver?.available() ?? false },
+        appearance: this.appearance, languages: this.languages, lang: this.lang, platform: 'harmony', dark: this.dark };
       if (recovery) {
         bootstrap.content = recovery.content;
         bootstrap.format = recovery.format ?? recovery.target?.format ?? this.initialFormat;
@@ -373,6 +390,7 @@ export class MarkdownHost {
       await this.context.openLink(url); return;
     }
     if (action === 'system-fonts') return JSON.parse(await loadSystemFonts()) as Object;
+    if (action === 'appearance') return this.resolveAppearance(request.payload);
     if (action === 'preferences') {
       this.preference = await MarkdownHost.preferences.update(request.payload as MarkdownPreferences);
       this.ui?.theme?.(this.effectiveDark());
@@ -474,7 +492,8 @@ export class MarkdownHost {
 
   private initialBootstrap(): Bootstrap {
     return { sessionId: this.sessionId, content: this.initialContent, target: this.transactions.getTarget(), format: this.initialFormat,
-      capabilities: { systemFonts: true }, preferences: this.preference, languages: this.languages, lang: this.lang, platform: 'harmony', dark: this.dark };
+      capabilities: { systemFonts: true, workspaceAppearance: this.appearanceResolver?.available() ?? false },
+      appearance: this.appearance, preferences: this.preference, languages: this.languages, lang: this.lang, platform: 'harmony', dark: this.dark };
   }
 
   private async openAbility(uri: string, recoveryId: string): Promise<void> {
@@ -579,6 +598,7 @@ export class MarkdownHost {
   async data(url: string): Promise<Uint8Array | undefined> {
     const epoch = this.documentEpoch;
     if (!url.startsWith(MARKDOWN_ORIGIN + '/') || new RegExp("[?#\\\\]").test(url)) return undefined;
+    if (this.appearanceResolver?.owns(url)) return this.appearanceResolver.read(url);
     const resourcePrefix = MARKDOWN_ORIGIN + '/resource/' + this.sessionId + '/';
     if (url.startsWith(resourcePrefix)) {
       const grant = this.resources.get(url.slice(resourcePrefix.length));
@@ -615,6 +635,7 @@ export class MarkdownHost {
   }
 
   resourceMime(url: string): string {
+    if (this.appearanceResolver?.owns(url)) return 'application/octet-stream';
     const prefix = MARKDOWN_ORIGIN + '/resource/' + this.sessionId + '/';
     return url.startsWith(prefix) ? this.resources.get(url.slice(prefix.length))?.mime ?? '' : '';
   }
@@ -739,6 +760,7 @@ export class MarkdownHost {
   }
   destroy(): void {
     this.destroyed = true;
+    this.appearanceResolver?.close();
     this.foregroundActive = false;
     clearTimeout(this.pollTimer);
     clearTimeout(this.treeTimer);

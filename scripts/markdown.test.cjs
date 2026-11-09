@@ -1196,6 +1196,100 @@ test("font discovery uses Harmony native families and shared kernel normalizatio
     const shared = readFileSync(resolve(directory, "../pages/SystemFont.ets"), "utf8");
     assert.match(shared, /getSystemFontFullNamesByType/);
     assert.match(shared, /kernel\.normalizeSysFonts\(JSON\.stringify\(fonts\)\)/);
-    assert.match(source, /capabilities: \{ systemFonts: true \}/);
+    assert.match(source, /capabilities: \{ systemFonts: true, workspaceAppearance:/);
     assert.doesNotMatch(source, /startKernel\(/);
+});
+
+test("workspace appearance persists fallback sources without overwriting concurrent preference changes", async () => {
+    const {MarkdownPreferenceStore} = load("MarkdownPreferences");
+    let saved;
+    const store = new MarkdownPreferenceStore(undefined, async text => {saved = text;});
+    const sources = {theme: "independent", fontSize: "independent", fonts: "independent"};
+    const first = store.resolveAppearance(async preferences => ({preferences: {...preferences, sources,
+        independent: {theme: "light", fontSize: 18}}, appearance: {theme: "dark"}}));
+    const second = store.update({mode: "sv"});
+    await Promise.all([first, second]);
+    assert.equal(store.get().mode, "sv");
+    assert.equal(store.get().theme, "system");
+    assert.equal(store.get().independent.theme, "light");
+    const restored = new MarkdownPreferenceStore(saved, async () => {});
+    assert.equal(restored.get().sources.fonts, "independent");
+    assert.equal(restored.get().independent.fontSize, 18);
+    const failed = new MarkdownPreferenceStore(saved, async () => {throw new Error("disk full");});
+    await assert.rejects(failed.resolveAppearance(async preferences => ({preferences: {...preferences, mode: "ir"}, appearance: {}})), /disk full/);
+    assert.equal(failed.get().mode, "sv");
+});
+
+test("workspace font resources are instance scoped, revoked on close and reject delayed reads", async () => {
+    let finish;
+    const calls = [];
+    const native = {
+        newMarkdownAppearance: (config, root) => {calls.push([config, root]); return "42";},
+        resolveMarkdownAppearance: async (_handle, preferences) => JSON.stringify({preferences: JSON.parse(preferences),
+            appearance: {theme: "dark", customFonts: [{family: "Font", weight: 400, url: "/appearance-font/" + "a".repeat(48)}]}}),
+        readMarkdownAppearanceFont: () => new Promise(resolve => {finish = resolve;}),
+        closeMarkdownAppearance: handle => calls.push(["close", handle]),
+    };
+    const {MarkdownAppearance} = load("MarkdownAppearance", {"libentry.so": native});
+    const service = new MarkdownAppearance("/private/root", "one");
+    const result = await service.resolve({mode: "ir", theme: "system", fontSize: 16});
+    const url = result.appearance.customFonts[0].url;
+    assert.ok(url.endsWith("/appearance-font/one/" + "a".repeat(48)));
+    assert.equal(await service.read(url.replace("/one/", "/two/")), undefined);
+    assert.equal(await service.read(url + "?extra"), undefined);
+    const reading = service.read(url);
+    service.close();
+    finish(new Uint8Array([0, 1, 0, 0]).buffer);
+    assert.equal(await reading, undefined);
+    assert.deepEqual(calls[0], ["/private/root/home/.config/siyuan/markdown", "/private/root"]);
+    assert.deepEqual(calls[1], ["close", "42"]);
+    assert.equal(service.available(), false);
+});
+
+test("workspace capability degrades safely with old native kernel and C buffers have bounded ownership", () => {
+    const {MarkdownAppearance} = load("MarkdownAppearance", {"libentry.so": {newMarkdownAppearance: () => ""}});
+    assert.equal(new MarkdownAppearance("/root", "one").available(), false);
+    const bridge = readFileSync(resolve(__dirname, "../entry/src/main/cpp/markdown_appearance.h"), "utf8");
+    assert.match(bridge, /napi_create_async_work/);
+    assert.match(bridge, /work->length <= 64 \* 1024 \* 1024/);
+    assert.match(bridge, /std::free\(work->output\)/);
+    assert.match(bridge, /NewMarkdownAppearance && ResolveMarkdownAppearance && ReadMarkdownAppearanceFont && CloseMarkdownAppearance/);
+});
+
+test("workspace font reads cannot acquire old grants while a source change is pending", async () => {
+    let finishResolve;
+    let finishRead;
+    let readCount = 0;
+    const oldToken = "a".repeat(48);
+    const nextToken = "b".repeat(48);
+    const response = token => JSON.stringify({preferences: {mode: "ir", theme: "system", fontSize: 16},
+        appearance: {customFonts: [{family: "Font", weight: 400, url: "/appearance-font/" + token}]}});
+    const native = {
+        newMarkdownAppearance: () => "42",
+        resolveMarkdownAppearance: async () => response(oldToken),
+        readMarkdownAppearanceFont: () => {readCount++; return new Promise(resolve => {finishRead = resolve;});},
+        closeMarkdownAppearance() {},
+    };
+    const {MarkdownAppearance} = load("MarkdownAppearance", {"libentry.so": native});
+    const service = new MarkdownAppearance("/root", "one");
+    const preferences = {mode: "ir", theme: "system", fontSize: 16};
+    const previous = await service.resolve(preferences);
+    const oldURL = previous.appearance.customFonts[0].url;
+    const oldRead = service.read(oldURL);
+    native.resolveMarkdownAppearance = () => new Promise(resolve => {finishResolve = resolve;});
+    const changing = service.resolve(preferences);
+    assert.equal(await service.read(oldURL), undefined);
+    assert.equal(readCount, 1, "pending resolves must not start reads using revoked grants");
+    finishResolve(response(nextToken));
+    const changed = await changing;
+    finishRead(new Uint8Array([0, 1, 0, 0]).buffer);
+    assert.equal(await oldRead, undefined, "an older read cannot return after publishing new grants");
+    assert.equal(await service.read(oldURL), undefined);
+    assert.equal(await service.read(changed.appearance.customFonts[0].url.replace(nextToken, "c".repeat(48))), undefined);
+    const newRead = service.read(changed.appearance.customFonts[0].url);
+    finishRead(new Uint8Array([0, 1, 0, 0]).buffer);
+    assert.equal((await newRead).length, 4);
+    native.resolveMarkdownAppearance = async () => response("short");
+    await assert.rejects(service.resolve(preferences), /Invalid appearance font/);
+    assert.equal(await service.read(changed.appearance.customFonts[0].url), undefined);
 });

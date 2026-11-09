@@ -1,4 +1,5 @@
 import { MarkdownPreferences, MarkdownFonts } from './MarkdownTypes';
+import { MarkdownAppearanceResult } from './MarkdownAppearance';
 
 export function markdownThemeDark(preference: string, systemDark: boolean): boolean {
   return preference === 'dark' || preference === 'system' && systemDark;
@@ -26,7 +27,12 @@ export class MarkdownPreferenceStore {
   }
   private valid(value: MarkdownPreferences): boolean {
     return ['ir', 'wysiwyg', 'sv'].includes(value.mode) && ['system', 'light', 'dark'].includes(value.theme) &&
-      Number.isInteger(value.fontSize) && value.fontSize >= 9 && value.fontSize <= 72 && this.validFonts(value.fonts);
+      Number.isInteger(value.fontSize) && value.fontSize >= 9 && value.fontSize <= 72 && this.validFonts(value.fonts) &&
+      (value.sources === undefined || [value.sources.theme, value.sources.fontSize, value.sources.fonts].every(
+        source => typeof source === 'string' && (source === 'independent' || new RegExp('^[a-f0-9]{64}$').test(source)))) &&
+      (value.independent === undefined || (value.independent.theme === undefined || ['system', 'light', 'dark'].includes(value.independent.theme)) &&
+        (value.independent.fontSize === undefined || Number.isInteger(value.independent.fontSize) && value.independent.fontSize >= 9 && value.independent.fontSize <= 72) &&
+        this.validFonts(value.independent.fonts));
   }
   private validFonts(fonts?: MarkdownFonts): boolean {
     if (fonts === undefined) return true;
@@ -36,6 +42,19 @@ export class MarkdownPreferenceStore {
         item.family.length <= 256 && Number.isInteger(item.weight) && item.weight >= 1 && item.weight <= 1000));
   }
   get(): MarkdownPreferences { return JSON.parse(JSON.stringify(this.value)) as MarkdownPreferences; }
+  resolveAppearance(resolve: (preferences: MarkdownPreferences) => Promise<MarkdownAppearanceResult>): Promise<MarkdownAppearanceResult> {
+    const operation = this.queue.then(async () => {
+      if (!this.writable) throw new Error('preferences unavailable');
+      const result = await resolve(this.get());
+      if (!this.valid(result.preferences)) throw new Error('preferences format');
+      const record: MarkdownPreferenceFile = { version: 1, value: result.preferences };
+      await this.persist(JSON.stringify(record));
+      this.value = result.preferences;
+      return result;
+    });
+    this.queue = operation.then(() => {}, () => {});
+    return operation;
+  }
   update(patch: MarkdownPreferences): Promise<MarkdownPreferences> {
     const operation = this.queue.then(async () => {
       if (!this.writable) throw new Error('preferences unavailable');

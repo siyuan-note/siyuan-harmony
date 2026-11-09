@@ -19,6 +19,10 @@
 export const startKernel: (appDir: string, workspaceBaseDir: string, localIPs: string, osVer: string) => void;
 
 export const isKernelPortAvailable: () => boolean;
+export const newMarkdownAppearance: (configDir: string, allowedRoot: string) => string;
+export const resolveMarkdownAppearance: (handle: string, preferences: string, patch: string) => Promise<string>;
+export const readMarkdownAppearanceFont: (handle: string, token: string) => Promise<ArrayBuffer>;
+export const closeMarkdownAppearance: (handle: string) => void;
 
 export const isHttpServing: () => boolean;
 

@@ -64,7 +64,12 @@ export interface MarkdownStore {
 }
 export interface MarkdownFont { family: string; weight: number; }
 export interface MarkdownFonts { global: MarkdownFont[]; editor: MarkdownFont[]; code: MarkdownFont[]; }
-export interface MarkdownPreferences { mode: string; theme: string; fontSize: number; fonts?: MarkdownFonts; }
+export interface MarkdownAppearanceSources { theme: string; fontSize: string; fonts: string; }
+export interface MarkdownIndependentAppearance { theme?: string; fontSize?: number; fonts?: MarkdownFonts; }
+export interface MarkdownPreferences {
+  mode: string; theme: string; fontSize: number; fonts?: MarkdownFonts;
+  sources?: MarkdownAppearanceSources; independent?: MarkdownIndependentAppearance;
+}
 export interface MarkdownIOError { code?: number; message?: string; }
 export interface MarkdownState { status: string; revision: number; savedRevision: number; draftRevision: number;
   targetGeneration: number; composing: boolean; }

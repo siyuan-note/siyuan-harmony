@@ -19,6 +19,7 @@
 #include "future"
 #include "kernel_startup.h"
 #include "lan_sync_bridge.h"
+#include "markdown_appearance.h"
 extern "C" char *NormalizeSysFonts(char *raw) __attribute__((weak));
 #include "napi/native_api.h"
 #include "string.h"
@@ -540,6 +541,10 @@ static napi_value Init(napi_env env, napi_value exports) {
     // 引用原生运行库，确保识别不依赖 WebView 的生命周期。
     (void)OrtGetApiBase();
     napi_property_descriptor desc[] = {
+        {"newMarkdownAppearance", nullptr, NewMarkdownAppearance0, nullptr, nullptr, nullptr, napi_default, nullptr},
+        {"resolveMarkdownAppearance", nullptr, ResolveMarkdownAppearance0, nullptr, nullptr, nullptr, napi_default, nullptr},
+        {"readMarkdownAppearanceFont", nullptr, ReadMarkdownAppearanceFont0, nullptr, nullptr, nullptr, napi_default, nullptr},
+        {"closeMarkdownAppearance", nullptr, CloseMarkdownAppearance0, nullptr, nullptr, nullptr, napi_default, nullptr},
         {"normalizeSysFonts", nullptr, NormalizeSysFonts0, nullptr, nullptr, nullptr, napi_default, nullptr},
         {"isKernelPortAvailable", nullptr, IsKernelPortAvailable0, nullptr, nullptr, nullptr, napi_default, nullptr},
         {"startKernel", nullptr, StartKernel0, nullptr, nullptr, nullptr, napi_default, nullptr},
