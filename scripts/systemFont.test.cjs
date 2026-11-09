@@ -28,7 +28,8 @@ const load = (names, descriptors) => {
         compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
     }).outputText, {
         exports,
-        require: id => id === "@kit.ArkGraphics2D" ? { text } : { hilog: { warn() {} } },
+        require: id => id === "libentry.so" ? {normalizeSysFonts: raw => {calls.push(["normalize", JSON.parse(raw).length]); return raw;}} :
+            id === "@kit.ArkGraphics2D" ? { text } : { hilog: { warn() {} } },
     });
     return { calls, fonts: async () => JSON.parse(await exports.loadSystemFonts()) };
 };
@@ -40,7 +41,7 @@ test("native enumeration includes installed fonts and converts engine weights to
     });
     const fonts = await harness.fonts();
     assert.equal(fonts.length, 2);
-    assert.ok(harness.calls.every(call => call[1] === 1));
+    assert.ok(harness.calls.filter(call => call[0] !== "normalize").every(call => call[1] === 1));
     assert.equal(fonts.find(font => font.family === "HarmonyOS Sans").weight, 400);
     const installed = fonts.find(font => font.family === "安装的等宽字体");
     assert.equal(installed.weight, 700);
@@ -67,4 +68,20 @@ test("font bridge returns its promise through the synchronous proxy method list"
     assert.match(main, /registerJavaScriptProxy\(this.jsHarmony, "JSHarmony",[\s\S]*?"getSystemFonts"/);
     const bridge = readFileSync(resolve(__dirname, "../entry/src/main/ets/pages/JSHarmony.ets"), "utf8");
     assert.match(bridge, /getSystemFonts\(\): Promise<string>\s*\{\s*return loadSystemFonts\(\);/);
+});
+
+
+test("font discovery delegates final normalization to the shared kernel", async () => {
+    const harness = load(["Regular"], {Regular: {fontFamily: "Example", weight: 3}});
+    await harness.fonts();
+    assert.deepEqual(harness.calls.at(-1), ["normalize", 1]);
+});
+
+
+test("an older kernel preserves validated native font descriptors", () => {
+    const source = readFileSync(resolve(__dirname, "../entry/src/main/cpp/napi_init.cpp"), "utf8");
+    const normalize = source.slice(source.indexOf("static napi_value NormalizeSysFonts0"), source.indexOf("static napi_value LANSyncDiscoveryInfo0"));
+    assert.ok(normalize.indexOf("type != napi_string") < normalize.indexOf("if (!NormalizeSysFonts) return args[0]"));
+    assert.ok(normalize.indexOf("if (!NormalizeSysFonts) return args[0]") < normalize.indexOf("NormalizeSysFonts(input)"));
+    assert.match(normalize, /free\(output\)/);
 });

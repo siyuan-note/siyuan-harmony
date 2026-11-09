@@ -19,6 +19,7 @@
 #include "future"
 #include "kernel_startup.h"
 #include "lan_sync_bridge.h"
+extern "C" char *NormalizeSysFonts(char *raw) __attribute__((weak));
 #include "napi/native_api.h"
 #include "string.h"
 #include "thread"
@@ -276,6 +277,30 @@ static napi_value GetExportFilePath0(napi_env env, napi_callback_info info) {
     return result;
 }
 
+static napi_value NormalizeSysFonts0(napi_env env, napi_callback_info info) {
+    size_t argc = 1;
+    napi_value args[1] = {nullptr};
+    napi_get_cb_info(env, info, &argc, args, nullptr, nullptr);
+    napi_valuetype type;
+    if (argc != 1 || napi_typeof(env, args[0], &type) != napi_ok || type != napi_string) {
+        napi_throw_type_error(env, nullptr, "Expected font descriptors");
+        return nullptr;
+    }
+    // 原生发现层已验证、去重并排序；旧内核库也能继续使用这份结果。
+    if (!NormalizeSysFonts) return args[0];
+    char *input = value2String(env, args[0]);
+    char *output = NormalizeSysFonts(input);
+    delete[] input;
+    if (!output) {
+        napi_throw_error(env, nullptr, "System font service unavailable");
+        return nullptr;
+    }
+    napi_value result;
+    napi_create_string_utf8(env, output, NAPI_AUTO_LENGTH, &result);
+    free(output);
+    return result;
+}
+
 static napi_value LANSyncDiscoveryInfo0(napi_env env, napi_callback_info info) {
     if (!LANSyncDiscoveryInfo) {
         napi_value result;
@@ -515,6 +540,7 @@ static napi_value Init(napi_env env, napi_value exports) {
     // 引用原生运行库，确保识别不依赖 WebView 的生命周期。
     (void)OrtGetApiBase();
     napi_property_descriptor desc[] = {
+        {"normalizeSysFonts", nullptr, NormalizeSysFonts0, nullptr, nullptr, nullptr, napi_default, nullptr},
         {"isKernelPortAvailable", nullptr, IsKernelPortAvailable0, nullptr, nullptr, nullptr, napi_default, nullptr},
         {"startKernel", nullptr, StartKernel0, nullptr, nullptr, nullptr, napi_default, nullptr},
         {"isHttpServing", nullptr, IsHttpServing0, nullptr, nullptr, nullptr, napi_default, nullptr},

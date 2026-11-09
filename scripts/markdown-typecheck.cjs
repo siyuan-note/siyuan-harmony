@@ -12,9 +12,12 @@ try {
     const directory = path.resolve(__dirname, "../entry/src/main/ets/markdown");
     const roots = readdirSync(directory).filter(name => name.endsWith(".ets")).map(name => {
         const target = path.join(temporary, arkts ? name : name.replace(/\.ets$/, ".ts"));
-        writeFileSync(target, readFileSync(path.join(directory, name), "utf8"));
+        writeFileSync(target, readFileSync(path.join(directory, name), "utf8").replaceAll("'../pages/SystemFont'", "'./SystemFont'"));
         return target;
     });
+    const fontSource = path.join(temporary, arkts ? "SystemFont.ets" : "SystemFont.ts");
+    writeFileSync(fontSource, readFileSync(path.join(directory, "../pages/SystemFont.ets"), "utf8"));
+    roots.push(fontSource);
     if (arkts && process.argv.includes("--ui")) {
         for (const relative of ["../pages/Markdown.ets", "../entryability/MarkdownAbility.ets", "../entryability/MarkdownStage.ets"]) {
             const target = path.join(temporary, path.basename(relative));
@@ -28,9 +31,10 @@ try {
     const ambient = path.join(temporary, "environment.d.ts");
     writeFileSync(ambient, "declare function canIUse(capability:string):boolean;\ndeclare module 'BuildProfile' {const profile:{DEBUG:boolean};export default profile;}\n");
     roots.push(ambient);
-    const options = {noEmit: true, skipLibCheck: true, strict: false, allowNonTsExtensions: true,
+    const options = {noEmit: true, skipLibCheck: true, strict: false, allowNonTsExtensions: true, allowSyntheticDefaultImports: true,
         module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2021,
-        paths: {"@kit.*": [path.join(sdk, "kits/@kit.*.d.ts")], "@ohos.*": [path.join(sdk, "api/@ohos.*.d.ts")]},
+        paths: {"@kit.*": [path.join(sdk, "kits/@kit.*.d.ts")], "@ohos.*": [path.join(sdk, "api/@ohos.*.d.ts")],
+            "libentry.so": [path.resolve(__dirname, "../entry/src/main/cpp/types/libentry/Index.d.ts")]},
         types: [], lib: ["lib.es2021.d.ts"]};
     let builder;
     let program;

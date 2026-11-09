@@ -1175,3 +1175,27 @@ test("the host transforms only initial page bytes and leaves other bundled resou
     host.preference.theme = "light"; host.dark = true;
     assert.equal(new TextDecoder().decode(await host.data(origin + "index.html")), html);
 });
+
+test("font preferences persist, reject malformed weights and return detached values", async () => {
+    const {MarkdownPreferenceStore} = load("MarkdownPreferences");
+    let saved;
+    const store = new MarkdownPreferenceStore(undefined, async text => {saved = text;});
+    const fonts = {global: [{family: "HarmonyOS Sans", weight: 400}], editor: [], code: []};
+    await store.update({fonts, fontSize: 72});
+    assert.equal(JSON.parse(saved).value.fonts.global[0].family, "HarmonyOS Sans");
+    store.get().fonts.global[0].family = "altered";
+    assert.equal(store.get().fonts.global[0].family, "HarmonyOS Sans");
+    await assert.rejects(store.update({fonts: {...fonts, code: [{family: "bad", weight: 1001}]}}));
+    await assert.rejects(store.update({fonts: {global: [], editor: []}}));
+    assert.equal(store.get().fontSize, 72);
+});
+
+test("font discovery uses Harmony native families and shared kernel normalization", () => {
+    const source = readFileSync(resolve(directory, "MarkdownHost.ets"), "utf8");
+    assert.match(source, /JSON\.parse\(await loadSystemFonts\(\)\)/);
+    const shared = readFileSync(resolve(directory, "../pages/SystemFont.ets"), "utf8");
+    assert.match(shared, /getSystemFontFullNamesByType/);
+    assert.match(shared, /kernel\.normalizeSysFonts\(JSON\.stringify\(fonts\)\)/);
+    assert.match(source, /capabilities: \{ systemFonts: true \}/);
+    assert.doesNotMatch(source, /startKernel\(/);
+});

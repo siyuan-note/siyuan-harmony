@@ -62,7 +62,9 @@ export interface MarkdownStore {
   list(): MarkdownRecord[];
   remove(sessionId: string): Promise<void>;
 }
-export interface MarkdownPreferences { mode: string; theme: string; fontSize: number; }
+export interface MarkdownFont { family: string; weight: number; }
+export interface MarkdownFonts { global: MarkdownFont[]; editor: MarkdownFont[]; code: MarkdownFont[]; }
+export interface MarkdownPreferences { mode: string; theme: string; fontSize: number; fonts?: MarkdownFonts; }
 export interface MarkdownIOError { code?: number; message?: string; }
 export interface MarkdownState { status: string; revision: number; savedRevision: number; draftRevision: number;
   targetGeneration: number; composing: boolean; }

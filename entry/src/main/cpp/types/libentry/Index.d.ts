@@ -58,3 +58,5 @@ export const releaseExportFile: (leaseID: string) => void;
 export const language: (num: number) => string;
 
 export const showMsg: (msg: string, timeout: number) => void;
+
+export const normalizeSysFonts: (raw: string) => string;

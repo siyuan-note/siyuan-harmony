@@ -16,6 +16,7 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+import kernel from 'libentry.so';
 import { text } from "@kit.ArkGraphics2D";
 import { hilog } from "@kit.PerformanceAnalysisKit";
 
@@ -77,5 +78,5 @@ export async function loadSystemFonts(): Promise<string> {
   }
   const fonts = Array.from(entries.values()).map((entry: SystemFontEntry) => entry.font);
   fonts.sort((left: SystemFont, right: SystemFont) => left.displayName.localeCompare(right.displayName));
-  return JSON.stringify(fonts);
+  return kernel.normalizeSysFonts(JSON.stringify(fonts));
 }

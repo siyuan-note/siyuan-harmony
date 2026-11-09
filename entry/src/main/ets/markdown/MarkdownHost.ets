@@ -1,6 +1,7 @@
 import { common, bundleManager, ConfigurationConstant } from '@kit.AbilityKit';
 import { fileIo as fs, fileUri, picker } from '@kit.CoreFileKit';
 import { util } from '@kit.ArkTS';
+import { loadSystemFonts } from '../pages/SystemFont';
 import { i18n } from '@kit.LocalizationKit';
 import { webview } from '@kit.ArkWeb';
 import { BusinessError } from '@kit.BasicServicesKit';
@@ -26,9 +27,10 @@ interface ReleaseRequest { sessionId: string; reservationId: string; operationId
 interface RecoveryItem { id: string; displayName: string; updatedAt: number; }
 interface RecoveryVersion { revision: number; targetGeneration: number; }
 interface ImageResult { kind: string; reference?: string; }
+interface FontCapabilities { systemFonts: boolean; }
 interface Bootstrap {
   sessionId: string; content: string; target?: Object; format: MarkdownFormat; recovered?: RecoveryVersion;
-  preferences: MarkdownPreferences; languages: Record<string, string>; lang: string; platform: string; dark: boolean;
+  capabilities: FontCapabilities; preferences: MarkdownPreferences; languages: Record<string, string>; lang: string; platform: string; dark: boolean;
 }
 interface PendingCommand { resolve: (accepted: boolean) => void; timer: number; }
 interface TreeCandidate { ticket: string; transactions: MarkdownTransactions; content: string; format: MarkdownFormat; epoch: number; }
@@ -370,6 +372,7 @@ export class MarkdownHost {
       if (typeof url !== 'string' || !new RegExp("^(?:https?:\\/\\/|mailto:)", "i").test(url) || new RegExp("[\\u0000-\\u001f]").test(url)) throw new Error('protocol');
       await this.context.openLink(url); return;
     }
+    if (action === 'system-fonts') return JSON.parse(await loadSystemFonts()) as Object;
     if (action === 'preferences') {
       this.preference = await MarkdownHost.preferences.update(request.payload as MarkdownPreferences);
       this.ui?.theme?.(this.effectiveDark());
@@ -471,7 +474,7 @@ export class MarkdownHost {
 
   private initialBootstrap(): Bootstrap {
     return { sessionId: this.sessionId, content: this.initialContent, target: this.transactions.getTarget(), format: this.initialFormat,
-      preferences: this.preference, languages: this.languages, lang: this.lang, platform: 'harmony', dark: this.dark };
+      capabilities: { systemFonts: true }, preferences: this.preference, languages: this.languages, lang: this.lang, platform: 'harmony', dark: this.dark };
   }
 
   private async openAbility(uri: string, recoveryId: string): Promise<void> {
