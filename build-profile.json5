@@ -8,7 +8,7 @@
           "certpath": "D:/微云同步助手/845765/Keystore/思源笔记鸿蒙.cer",
           "keyAlias": "key0",
           "keyPassword": "0000001A4E7274DC0A82DFB60B5B1C91C052D9B1E9E6E522285AF601A036DEC78FF9141898E9C788D530",
-          "profile": "D:/微云同步助手/845765/Keystore/SiYuan鸿蒙Release.p7b",
+          "profile": "D:/微云同步助手/845765/Keystore/思源笔记20261110Release.p7b",
           "signAlg": "SHA256withECDSA",
           "storeFile": "D:/微云同步助手/845765/Keystore/siyuan-harmony.p12",
           "storePassword": "0000001AFAC07CE9E554AA17DA414C386F2E6FC2182C4BF929C2FA8CEF83D588C3C52E232879848531D1"

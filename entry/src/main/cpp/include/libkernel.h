@@ -23,6 +23,13 @@ extern const char *_GoStringPtr(_GoString_ s);
 
 
 
+#line 7 "markdown_appearance.go"
+
+#include <stdint.h>
+
+#line 1 "cgo-generated-wrapper"
+
+
 /* End of preamble from import "C" comments.  */
 
 
@@ -82,6 +89,7 @@ typedef struct { void *data; GoInt len; GoInt cap; } GoSlice;
 extern "C" {
 #endif
 
+extern char* NormalizeSysFonts(char* raw);
 extern char* LANSyncDiscoveryInfo(void);
 extern GoUint8 AddLANSyncPeer(char* instance, char* address, GoInt port, char* txtJSON);
 extern GoUint8 RemoveLANSyncPeer(char* instance);
@@ -107,6 +115,10 @@ extern char* HTML2Markdown(char* html);
 extern void Unzip(char* zipFilePath, char* destination);
 extern char* GetExportFilePath(char* exportPath);
 extern void Exit(void);
+extern uint64_t NewMarkdownAppearance(char* configDir, char* allowedRoot);
+extern char* ResolveMarkdownAppearance(uint64_t handle, char* preferences, char* patch);
+extern char* ReadMarkdownAppearanceFont(uint64_t handle, char* token, int* length);
+extern void CloseMarkdownAppearance(uint64_t handle);
 
 #ifdef __cplusplus
 }
