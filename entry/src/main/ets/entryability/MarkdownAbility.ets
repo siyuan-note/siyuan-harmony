@@ -76,7 +76,7 @@ export default class MarkdownAbility extends UIAbility {
     // 容器内已切换到别的文件时，新的系统请求另开实例，保护当前正文。
     void this.context.startAbility({ bundleName: this.context.abilityInfo.bundleName, abilityName: 'MarkdownAbility',
       uri: uri, flags: want.flags, parameters: { markdownInstanceKey: newMarkdownId(),
-        markdownRecovery: want.parameters?.markdownRecovery } }).catch(() => this.host?.reportOpenFailure());
+        markdownRecovery: want.parameters?.markdownRecovery ?? '' } }).catch(() => this.host?.reportOpenFailure());
   }
 
   onBackground(): void { if (this.host) void this.host.background(); }

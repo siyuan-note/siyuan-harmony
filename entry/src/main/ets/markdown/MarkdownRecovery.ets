@@ -7,8 +7,10 @@ export function latestMarkdownRecovery(record: MarkdownRecord): MarkdownOperatio
   if (record.prepared) candidates.push(record.prepared.operation);
   let latest: MarkdownOperation | undefined;
   for (const operation of candidates) {
-    if (!operation || typeof operation.content !== 'string' || !Number.isSafeInteger(operation.revision) ||
-      operation.revision < 0 || !validMarkdownFormat(operation.format ?? operation.target?.format)) throw new Error('recovery format');
+    if (!operation) throw new Error('recovery format');
+    const format = operation.format ?? operation.target?.format;
+    if (typeof operation.content !== 'string' || !Number.isSafeInteger(operation.revision) ||
+      operation.revision < 0 || !format || !validMarkdownFormat(format)) throw new Error('recovery format');
     if (!latest || operation.revision > latest.revision) latest = operation;
   }
   return latest;

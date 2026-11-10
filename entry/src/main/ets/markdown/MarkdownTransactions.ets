@@ -40,6 +40,7 @@ export class MarkdownTransactions {
     const grants = this.registry.pending(this.sessionId);
     for (const grant of grants) {
       const request = grant.pending;
+      if (!request) return false;
       const receipt = await this.reconcile(request);
       if (receipt.kind === 'committed' && grant.reservationId) {
         const commit = await this.commit({ operation: request, receipt: receipt, previousTarget: this.current?.target,
@@ -152,7 +153,7 @@ export class MarkdownTransactions {
   reserve(request: MarkdownOperation): MarkdownReceipt {
     const grant = request.target ? this.registry.get(request.target.handle, this.sessionId) : undefined;
     if (!grant || !grant.reservationId || grant.pending || grant.generation !== this.generation + 1 || request.sessionId !== this.sessionId ||
-      !validMarkdownId(request.operationId) || !validMarkdownFormat(request.format)) return markdownBlocked();
+      !validMarkdownId(request.operationId) || !request.format || !validMarkdownFormat(request.format)) return markdownBlocked();
     for (const handle of this.candidates) {
       const other = this.registry.get(handle, this.sessionId);
       if (other && other !== grant && other.operationId) return markdownBlocked();
@@ -178,7 +179,7 @@ export class MarkdownTransactions {
   write(request: MarkdownOperation): Promise<MarkdownReceipt> {
     return this.serialize(async () => {
       const grant = this.grant(request, true);
-      if (!grant) return markdownBlocked();
+      if (!grant || !request.target) return markdownBlocked();
       if (request.content.length > MARKDOWN_LIMIT) return markdownBlocked('size');
       if (this.unknownBinding || (this.durableBinding && this.durableBinding.generation > this.generation)) return markdownUncertain();
       if (!grant.target.writable) return markdownBlocked('readonly');
@@ -273,7 +274,7 @@ export class MarkdownTransactions {
   reconcile(request: MarkdownOperation): Promise<MarkdownReceipt> {
     return this.serialize(async () => {
       const grant = this.grant(request, true);
-      if (!grant || !this.sameOperation(request, grant.pending) || !grant.original) return markdownBlocked();
+      if (!grant || !request.target || !this.sameOperation(request, grant.pending) || !grant.original) return markdownBlocked();
       if (this.unknownBinding) {
         try { await this.verifyBinding(grant, request); } catch (error) { return markdownUncertain(); }
         if (this.unknownBinding) return markdownUncertain();
@@ -379,7 +380,7 @@ export class MarkdownTransactions {
   putDraft(request: MarkdownOperation): Promise<void> {
     return this.serialize(async () => {
       if (this.closed || request.sessionId !== this.sessionId || !validMarkdownId(request.operationId) ||
-        typeof request.content !== 'string' || !validMarkdownFormat(request.format) ||
+        typeof request.content !== 'string' || !request.format || !validMarkdownFormat(request.format) ||
         !Number.isSafeInteger(request.revision) || request.revision < 0 || this.unknownBinding ||
         (request.targetGeneration !== this.generation && request.targetGeneration !== (this.durableBinding?.generation ?? -1) - 1)) throw new Error('protocol');
       this.io.encode(request.content, request.format, MARKDOWN_RECOVERY_CONTENT_LIMIT);

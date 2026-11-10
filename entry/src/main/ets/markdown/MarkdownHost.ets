@@ -101,6 +101,22 @@ export class MarkdownHost {
   readonly containerId: string;
   get sessionId(): string { return this.transactions.sessionId; }
   get targetURI(): string { return this.transactions.getURI(); }
+  private static requireStore(): HarmonyMarkdownStore {
+    if (!MarkdownHost.store) throw new Error('Markdown store unavailable');
+    return MarkdownHost.store;
+  }
+  private static requirePreferences(): MarkdownPreferenceStore {
+    if (!MarkdownHost.preferences) throw new Error('Markdown preferences unavailable');
+    return MarkdownHost.preferences;
+  }
+  private requireTree(): MarkdownTree {
+    if (!this.tree) throw new Error('Markdown tree unavailable');
+    return this.tree;
+  }
+  private requireUI(): MarkdownNativeUI {
+    if (!this.ui) throw new Error('Markdown UI unavailable');
+    return this.ui;
+  }
   reportOpenFailure(): void { this.ui?.notice(this.text('markdownFileUnavailable')); }
   async canFocus(sessionId: string): Promise<boolean> {
     await this.transactions.settled();
@@ -180,7 +196,7 @@ export class MarkdownHost {
     };
     this.tree = new MarkdownTree(treeIO, MarkdownHost.treeStore);
     if (recoveryId && validMarkdownId(recoveryId)) {
-      const record = MarkdownHost.store.read(MarkdownHost.recoveryTransfers.consume(recoveryId, Date.now()));
+      const record = MarkdownHost.requireStore().read(MarkdownHost.recoveryTransfers.consume(recoveryId, Date.now()));
       const operation = latestMarkdownRecovery(record);
       if (!operation) throw new Error(this.text('markdownNoRecovery'));
       this.initialContent = operation.content;
@@ -194,7 +210,7 @@ export class MarkdownHost {
       const persistent = await persistMarkdownPermission(canonical, true);
       const result = await this.transactions.authorize(canonical, name, persistent, false);
       if (result.kind === 'occupied' && result.sessionId) throw new MarkdownOccupiedError(result.sessionId);
-      if (result.kind !== 'read') {
+      if (result.kind !== 'read' || result.content === undefined || !result.target) {
         const keys: Record<string, string> = { 'size': 'markdownTooLarge', 'encoding': 'agentSkillEncodingTip',
           'permission': 'markdownPermissionDenied', 'offline': 'markdownFileOffline', 'deleted': 'markdownFileDeleted',
           'identity-changed': 'markdownFileReplaced', 'space': 'markdownNoSpace' };
@@ -220,8 +236,9 @@ export class MarkdownHost {
   }
   effectiveDark(): boolean { return markdownThemeDark(this.appearance?.theme ?? this.preference.theme, this.dark); }
   private async resolveAppearance(patch?: Object): Promise<MarkdownAppearanceValue> {
-    if (this.destroyed || !this.appearanceResolver?.available()) throw new Error('Workspace appearance unavailable');
-    const result = await MarkdownHost.preferences.resolveAppearance(preferences => this.appearanceResolver.resolve(preferences, patch));
+    const resolver = this.appearanceResolver;
+    if (this.destroyed || !resolver?.available()) throw new Error('Workspace appearance unavailable');
+    const result = await MarkdownHost.requirePreferences().resolveAppearance(preferences => resolver.resolve(preferences, patch));
     if (this.destroyed) throw new Error('Workspace appearance closed');
     this.preference = result.preferences;
     this.appearance = result.appearance;
@@ -241,7 +258,7 @@ export class MarkdownHost {
   }
 
   private async sendScript(script: string): Promise<void> {
-    if (!this.currentPage()) throw new Error('Markdown page unavailable');
+    if (!this.currentPage() || !this.controller) throw new Error('Markdown page unavailable');
     await this.controller.runJavaScript(script);
   }
 
@@ -279,7 +296,7 @@ export class MarkdownHost {
     if (action === 'bootstrap') {
       if (this.appearanceResolver?.available()) await this.resolveAppearance();
       if (!await this.transactions.recoverPending()) throw new Error(this.text('markdownUncertain'));
-      const record = MarkdownHost.store.read(this.sessionId);
+      const record = MarkdownHost.requireStore().read(this.sessionId);
       const recovery = latestMarkdownRecovery(record);
       const bootstrap: Bootstrap = { sessionId: this.sessionId, content: this.initialContent,
         target: this.transactions.getTarget(), format: this.initialFormat, preferences: this.preference,
@@ -293,16 +310,16 @@ export class MarkdownHost {
         const request: MarkdownOperation = { sessionId: this.sessionId, operationId: this.io.newId(),
           targetGeneration: this.transactions.getGeneration(), revision: 0, content: '', target: this.transactions.getTarget() };
         const result = await this.transactions.read(request);
-        if (result.kind !== 'read') throw new Error(this.text('markdownFileUnavailable'));
+        if (result.kind !== 'read' || result.content === undefined || !result.target) throw new Error(this.text('markdownFileUnavailable'));
         bootstrap.content = result.content;
         bootstrap.target = result.target;
         bootstrap.format = result.target.format;
       } else if (this.recovered) bootstrap.recovered = { revision: 1, targetGeneration: 0 };
       return bootstrap;
     }
-    if (action === 'tree-state') return this.tree.state();
+    if (action === 'tree-state') return this.requireTree().state();
     if (action === 'tree-list') {
-      const result = await this.tree.list(request.payload as MarkdownTreeLocation);
+      const result = await this.requireTree().list(request.payload as MarkdownTreeLocation);
       if (epoch !== this.documentEpoch) throw new Error('protocol');
       return result;
     }
@@ -311,9 +328,10 @@ export class MarkdownHost {
       const uri = await this.chooseDirectory();
       if (!uri) return { kind: 'cancelled' } as TreeOpenResult;
       if (epoch !== this.documentEpoch) throw new Error('protocol');
-      await this.tree.choose(uri); void this.command('tree-change'); return this.tree.state();
+      const tree = this.requireTree();
+      await tree.choose(uri); void this.command('tree-change'); return tree.state();
     }
-    if (action === 'tree-save-view') { await this.tree.saveView(request.payload as MarkdownTreeView); return; }
+    if (action === 'tree-save-view') { await this.requireTree().saveView(request.payload as MarkdownTreeView); return; }
     if (action === 'tree-prepare-open') return this.prepareTreeOpen(request.payload as MarkdownTreeLocation);
     if (action === 'tree-commit-open') {
       const ticket = request.payload as string;
@@ -325,7 +343,7 @@ export class MarkdownHost {
       this.treeCandidate = undefined; this.treeCommitted = ticket; this.released = false; this.recovered = false;
       this.treeFollowAfterCancel = undefined;
       this.resources.clear(); this.imageFiles.clear(); this.directory = ''; this.observedVersion = '';
-      void this.tree.follow(this.transactions.getURI());
+      void this.requireTree().follow(this.transactions.getURI());
       return this.initialBootstrap();
     }
     if (action === 'tree-cancel-open') {
@@ -345,7 +363,7 @@ export class MarkdownHost {
         const selectedDirectory = this.saveAsDirectories.get(this.transactions.getTarget()?.handle ?? '') ?? '';
         this.saveAsDirectories.clear();
         if (this.treeCandidate) this.treeFollowAfterCancel = selectedDirectory;
-        else await this.tree.follow(this.transactions.getURI(), selectedDirectory, true).catch(() => {});
+        else await this.requireTree().follow(this.transactions.getURI(), selectedDirectory, true).catch(() => {});
         void this.command('tree-change');
       }
       return result;
@@ -392,7 +410,7 @@ export class MarkdownHost {
     if (action === 'system-fonts') return JSON.parse(await loadSystemFonts()) as Object;
     if (action === 'appearance') return this.resolveAppearance(request.payload);
     if (action === 'preferences') {
-      this.preference = await MarkdownHost.preferences.update(request.payload as MarkdownPreferences);
+      this.preference = await MarkdownHost.requirePreferences().update(request.payload as MarkdownPreferences);
       this.ui?.theme?.(this.effectiveDark());
       return this.preference;
     }
@@ -401,16 +419,16 @@ export class MarkdownHost {
       if (!['reload', 'overwrite', 'save-as'].includes(kind)) throw new Error('protocol');
       const key = kind === 'reload' ? 'markdownReload' : kind === 'overwrite' ? 'markdownOverwrite' : 'saveAs';
       const message = kind === 'save-as' ? 'markdownRelativeLinks' : kind === 'reload' ? 'markdownReloadConfirm' : 'markdownOverwriteConfirm';
-      return await this.ui.confirm(this.text(key), this.text(message), [this.text('cancel'), this.text('confirm')]) === 1;
+      return await this.requireUI().confirm(this.text(key), this.text(message), [this.text('cancel'), this.text('confirm')]) === 1;
     }
     if (action === 'confirm-close') {
-      const choice = await this.ui.confirm(this.text('markdownUnsaved'), this.text('markdownCloseDraft'),
+      const choice = await this.requireUI().confirm(this.text('markdownUnsaved'), this.text('markdownCloseDraft'),
         [this.text('cancel'), this.text('markdownKeepDraft'), this.text('saveAs')]);
       return choice === 1 ? 'keep' : choice === 2 ? 'save-as' : 'cancel';
     }
     if (action === 'recoveries') {
       const items: RecoveryItem[] = [];
-      for (const record of MarkdownHost.store.list()) {
+      for (const record of MarkdownHost.requireStore().list()) {
         if (!MarkdownLifetime.isActive(record.sessionId) && (record.draft || record.journal || record.prepared)) {
           items.push({ id: record.sessionId, displayName: record.displayName, updatedAt: record.updatedAt });
         }
@@ -425,8 +443,8 @@ export class MarkdownHost {
     if (action === 'discard-recovery') {
       const id = request.payload as string;
       if (!validMarkdownId(id) || MarkdownLifetime.isActive(id)) throw new Error('protocol');
-      if (await this.ui.confirm(this.text('delete'), this.text('markdownRecovery'), [this.text('cancel'), this.text('delete')]) === 1) {
-        await MarkdownHost.store.remove(id);
+      if (await this.requireUI().confirm(this.text('delete'), this.text('markdownRecovery'), [this.text('cancel'), this.text('delete')]) === 1) {
+        await MarkdownHost.requireStore().remove(id);
       }
       return;
     }
@@ -452,7 +470,7 @@ export class MarkdownHost {
     await candidate.transactions.release();
     if (this.treeFollowAfterCancel !== undefined) {
       const directory = this.treeFollowAfterCancel; this.treeFollowAfterCancel = undefined;
-      await this.tree.follow(this.transactions.getURI(), directory, true);
+      await this.requireTree().follow(this.transactions.getURI(), directory, true);
       void this.command('tree-change');
     }
   }
@@ -463,11 +481,13 @@ export class MarkdownHost {
     const requestEpoch = this.treeRequestEpoch;
     let transactions: MarkdownTransactions | undefined;
     try {
-      const uri = await this.tree.file(location);
+      const tree = this.requireTree();
+      const store = MarkdownHost.requireStore();
+      const uri = await tree.file(location);
       if (uri === this.transactions.getURI()) return { kind: 'current' };
       const sessionId = this.io.newId();
-      if (MarkdownHost.store.list().some((record: MarkdownRecord) => record.sessionId === sessionId)) throw new Error('identifier collision');
-      transactions = new MarkdownTransactions(sessionId, this.io, MarkdownHost.store, markdownRegistry);
+      if (store.list().some((record: MarkdownRecord) => record.sessionId === sessionId)) throw new Error('identifier collision');
+      transactions = new MarkdownTransactions(sessionId, this.io, store, markdownRegistry);
       const persistent = await persistMarkdownPermission(uri, true);
       const result = await transactions.authorize(uri, new fileUri.FileUri(uri).name, persistent, false);
       if (result.kind === 'occupied' && result.sessionId) {
@@ -479,7 +499,8 @@ export class MarkdownHost {
         return { kind: 'occupied', sessionId: result.sessionId };
       }
       if (result.kind !== 'read') { await transactions.release(); return { kind: result.kind, error: result.error }; }
-      if (epoch !== this.documentEpoch || requestEpoch !== this.treeRequestEpoch || this.destroyed || await this.tree.file(location) !== uri) throw new Error('protocol');
+      if (result.content === undefined || !result.target) throw new Error('protocol');
+      if (epoch !== this.documentEpoch || requestEpoch !== this.treeRequestEpoch || this.destroyed || await tree.file(location) !== uri) throw new Error('protocol');
       const ticket = this.io.newId();
       if (ticket === this.treeCommitted) throw new Error('identifier collision');
       this.treeCandidate = { ticket: ticket, transactions: transactions, content: result.content, format: result.target.format, epoch: epoch };
@@ -515,7 +536,7 @@ export class MarkdownHost {
   private async chooseNewURI(name: string): Promise<string> {
     const directory = await this.chooseDirectory();
     if (!directory) return '';
-    const filename = await this.ui.filename(this.text('saveAs'), name, this.text('save'), this.text('cancel'));
+    const filename = await this.requireUI().filename(this.text('saveAs'), name, this.text('save'), this.text('cancel'));
     if (!filename) return '';
     if (filename === '.' || filename === '..' || filename.length > 240 || new RegExp("[\\u0000-\\u001f\\\\/:*?\"<>|]").test(filename)) throw new Error('Invalid filename');
     const uri = canonicalMarkdownURI(directory + '/' + encodeURIComponent(filename));
@@ -578,8 +599,9 @@ export class MarkdownHost {
     const parent: string = new fileUri.FileUri(this.transactions.getURI()).getFullDirectoryUri().replace(new RegExp("\\/$"), '');
     if (epoch !== this.documentEpoch || !destination.startsWith(parent + '/') || generation !== this.transactions.getGeneration()) return { kind: 'blocked' };
     const sessionId = this.io.newId();
-    if (MarkdownHost.store.list().some((record: MarkdownRecord) => record.sessionId === sessionId)) throw new Error('identifier collision');
-    const assetSession = new MarkdownTransactions(sessionId, this.io, MarkdownHost.store, markdownRegistry);
+    const store = MarkdownHost.requireStore();
+    if (store.list().some((record: MarkdownRecord) => record.sessionId === sessionId)) throw new Error('identifier collision');
+    const assetSession = new MarkdownTransactions(sessionId, this.io, store, markdownRegistry);
     const reserved = await assetSession.authorize(destination, new fileUri.FileUri(destination).name, false, false,
       { bom: false, newline: '\n' }, true);
     if (reserved.kind !== 'read') return { kind: 'blocked' };

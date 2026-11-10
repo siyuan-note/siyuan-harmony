@@ -218,6 +218,7 @@ export class MarkdownTree {
     try {
       const node = await this.checked(location);
       const root = this.root;
+      if (!root) throw new Error('protocol');
       const ticket = this.generation;
       const entries = await this.children(node, root);
       if (ticket !== this.generation || root !== this.root) throw new Error('protocol');
@@ -296,10 +297,11 @@ export class MarkdownTree {
     } catch (error) { return ticket === this.generation; }
   }
   watchDirectories(): string[] {
-    if (!this.root) return [];
-    const expanded = this.store.get().roots.find((item: MarkdownTreeRootView) => item.id === this.root.id)?.expanded ?? [];
+    const root = this.root;
+    if (!root) return [];
+    const expanded = this.store.get().roots.find((item: MarkdownTreeRootView) => item.id === root.id)?.expanded ?? [];
     const result: string[] = [];
-    for (const id of [this.root.id].concat(expanded)) {
+    for (const id of [root.id].concat(expanded)) {
       const node = this.nodes.get(id);
       if (node?.directory) result.push(node.uri);
     }

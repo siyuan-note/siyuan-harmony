@@ -185,8 +185,9 @@ export class HarmonyMarkdownStore implements MarkdownStore {
     if (record.journal) operations.push(record.journal.operation);
     const io = new HarmonyMarkdownIO();
     for (const operation of operations) {
-      if (operation.sessionId !== sessionId || typeof operation.content !== 'string') throw new Error('recovery format');
-      io.encode(operation.content, operation.format ?? operation.target?.format, MARKDOWN_RECOVERY_CONTENT_LIMIT);
+      const format = operation.format ?? operation.target?.format;
+      if (operation.sessionId !== sessionId || typeof operation.content !== 'string' || !format) throw new Error('recovery format');
+      io.encode(operation.content, format, MARKDOWN_RECOVERY_CONTENT_LIMIT);
     }
   }
   read(sessionId: string): MarkdownRecord {

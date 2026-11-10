@@ -31,7 +31,7 @@ try {
     const ambient = path.join(temporary, "environment.d.ts");
     writeFileSync(ambient, "declare function canIUse(capability:string):boolean;\ndeclare module 'BuildProfile' {const profile:{DEBUG:boolean};export default profile;}\n");
     roots.push(ambient);
-    const options = {noEmit: true, skipLibCheck: true, strict: false, allowNonTsExtensions: true, allowSyntheticDefaultImports: true,
+    const options = {noEmit: true, skipLibCheck: true, strict: false, strictNullChecks: true, allowNonTsExtensions: true, allowSyntheticDefaultImports: true,
         module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2021,
         paths: {"@kit.*": [path.join(sdk, "kits/@kit.*.d.ts")], "@ohos.*": [path.join(sdk, "api/@ohos.*.d.ts")],
             "libentry.so": [path.resolve(__dirname, "../entry/src/main/cpp/types/libentry/Index.d.ts")]},
