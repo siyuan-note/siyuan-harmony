@@ -25,6 +25,8 @@ import { emitter, pasteboard } from '@kit.BasicServicesKit';
 import napi from 'libentry.so';
 import { Want, WantAgent, wantAgent, wantConstant } from '@kit.AbilityKit';
 import { fileUri, fileIo as fs, picker } from '@kit.CoreFileKit';
+import { uniformTypeDescriptor } from '@kit.ArkData';
+import { systemShare } from '@kit.ShareKit';
 import { notificationManager } from '@kit.NotificationKit';
 import { reminderAgentManager } from '@kit.BackgroundTasksKit';
 import { buildClipboardHTML, parseClipboardHTML } from "./Clipboard";
@@ -276,6 +278,31 @@ export struct JSHarmony {
     }
 
     Utils.openByDefaultBrowser(url);
+  }
+
+  async shareAsset(url: string) {
+    try {
+      const path = await napi.getAssetSharePath(url);
+      if (!path) {
+        napi.showMsg(napi.language(475), 5000);
+        return;
+      }
+      const dot = path.lastIndexOf(".");
+      const type = dot > path.lastIndexOf("/") ?
+        uniformTypeDescriptor.getUniformDataTypeByFilenameExtension(path.substring(dot).toLowerCase()) : "";
+      const data = new systemShare.SharedData({
+        utd: type && !type.startsWith("flex.") ? type : uniformTypeDescriptor.UniformDataType.FILE,
+        uri: fileUri.getUriFromPath(path)
+      });
+      const controller = new systemShare.ShareController(data);
+      await controller.show(Utils.getContext(), {
+        selectionMode: systemShare.SelectionMode.SINGLE,
+        previewMode: systemShare.SharePreviewMode.DETAIL
+      });
+    } catch (e) {
+      hilog.error(0x0000, "siyuan", "share asset failed: " + e);
+      napi.showMsg(napi.language(475), 5000);
+    }
   }
 
   async saveExportFile(url: string) {

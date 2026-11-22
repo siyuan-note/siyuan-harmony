@@ -234,6 +234,7 @@ struct Main {
               "openMarkdownEditor",
               "saveExportFile",
               "saveExportFileV2",
+              "shareAsset",
               "openExternal",
               "openAuthURL",
               "getOIDCCallback",
