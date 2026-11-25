@@ -105,6 +105,7 @@ extern void ShowMsg(char* msg, GoInt timeout);
 extern GoUint8 IsHttpServing(void);
 extern char* GetCurrentWorkspacePath(void);
 extern char* GetAssetAbsPath(char* relativePath);
+extern char* GetAssetSharePath(char* asset);
 extern char* GetMimeTypeByExt(char* ext);
 extern void SetTimezone(char* container, char* appDir, char* timezoneID);
 extern void DisableFeature(char* feature);
