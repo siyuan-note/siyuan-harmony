@@ -30,6 +30,7 @@ import { inputMethod } from '@kit.IMEKit';
 import inputDevice from '@ohos.multimodalInput.inputDevice';
 import { LANSyncMDNS } from './LANSyncMDNS';
 import { kernelStartup } from "./KernelStartup";
+import { MainWindowControls } from './MainWindowControls';
 
 interface BootProgressData {
   progress: number;
@@ -63,6 +64,7 @@ struct Main {
   private pendingBootURL: string = "";
   @State private showBootPage: boolean = true;
   jsHarmony: JSHarmony = new JSHarmony();
+  private windowControls?: MainWindowControls;
   private webViewAttached: boolean = false;
   @State isFocusable: boolean = false;
   @State keyBoards: Map<number, inputDevice.KeyboardType> = new Map();
@@ -158,6 +160,7 @@ struct Main {
           }
         })
         .onPageBegin((event) => {
+          this.windowControls?.disconnect();
           const url = event?.url;
           if (url && url.startsWith("http://127.0.0.1:6806/") &&
             0 > url.indexOf("/appearance/boot/")) {
@@ -196,6 +199,7 @@ struct Main {
           }
         })
         .onRenderExited(() => {
+          this.windowControls?.disconnect();
           hilog.error(0x0000, "siyuan", "web render process exited");
           this.forceDefaultBootAppearance = true;
           this.mainPageNavigationStarted = false;
@@ -228,6 +232,16 @@ struct Main {
             "SiYuan/" + Utils.appVer + " https://b3log.org/siyuan Harmony " + this.controller.getUserAgent();
           this.controller.setCustomUserAgent(ua);
           this.webViewAttached = true;
+          const mainWindow = AppStorage.get<window.Window>('workspaceMainWindow');
+          if (mainWindow) {
+            try {
+              this.windowControls = new MainWindowControls(mainWindow, this.controller, this.getUIContext());
+              this.windowControls.register();
+            } catch (error) {
+              this.windowControls = undefined;
+              hilog.warn(0x0000, 'siyuan', 'register native window controls failed: ' + error);
+            }
+          }
           this.controller.registerJavaScriptProxy(this.jsHarmony, "JSHarmony",
             [
               "exportByDefault",
@@ -323,6 +337,9 @@ struct Main {
           return false;
         })
         .onTouch((event: TouchEvent) => {
+          if (!this.showBootPage) {
+            this.windowControls?.handleTouch(event);
+          }
           // 手指抬起时通知前端，用于清除长按多选定时器
           if (event.type === TouchType.Up) {
             this.controller.runJavaScript("javascript:window.dispatchEvent(new Event('nativePhysicalTouchUp'))");
@@ -460,6 +477,11 @@ struct Main {
 
   aboutToDisappear(): void {
     this.pageActive = false;
+    try {
+      this.windowControls?.dispose();
+    } catch (error) {
+      hilog.warn(0x0000, 'siyuan', 'dispose native window controls failed: ' + error);
+    }
     this.cancelMainPageWatchdog();
     this.stopBootProgressMonitor();
   }

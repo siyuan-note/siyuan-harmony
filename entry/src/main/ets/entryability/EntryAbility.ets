@@ -67,6 +67,7 @@ export default class EntryAbility extends UIAbility {
     hilog.info(0x0000, "siyuan", 'ability onWindowStageCreate');
 
     const wnd = windowStage.getMainWindowSync();
+    AppStorage.setOrCreate('workspaceMainWindow', wnd);
     try {
       wnd.setWindowLayoutFullScreen(true);
       wnd.setSpecificSystemBarEnabled('status', false);
@@ -87,6 +88,7 @@ export default class EntryAbility extends UIAbility {
   }
 
   onWindowStageDestroy(): void {
+    AppStorage.delete('workspaceMainWindow');
     // Main window is destroyed, release UI related resources
     hilog.info(0x0000, "siyuan", 'ability onWindowStageDestroy');
   }
