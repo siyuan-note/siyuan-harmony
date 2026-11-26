@@ -22,6 +22,7 @@
 #include "markdown_appearance.h"
 extern "C" char *NormalizeSysFonts(char *raw) __attribute__((weak));
 extern "C" char *GetAssetSharePath(char *asset);
+extern "C" void SetAIModelPolicy(char *policy);
 #include "napi/native_api.h"
 #include "string.h"
 #include "thread"
@@ -63,6 +64,8 @@ static napi_value StartKernel0(napi_env env, napi_callback_info info) {
     char *localIPs = value2String(env, args[2]);
     char *osVer = value2String(env, args[3]);
     std::thread t([appDir, workspaceBaseDir, localIPs, osVer]() {
+        char aiModelPolicy[] = "deepseek";
+        SetAIModelPolicy(aiModelPolicy);
         StartKernel((char *)"harmony", appDir, workspaceBaseDir, (char *)"Asia/Shanghai", localIPs, (char *)"zh-CN",
                     osVer);
     });
